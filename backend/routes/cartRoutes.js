@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.use(authController.protect); 
 
-router
+router 
   .route('/')
   .get(cartController.getCart)
   .delete(cartController.clearCart);
