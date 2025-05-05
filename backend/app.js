@@ -8,7 +8,7 @@ const productRouter = require('./routes/productRoutes');
 const cartRouter = require('./routes/cartRoutes');
 const orderRouter = require('./routes/orderRoutes');
 const profileRouter = require('./routes/profileRoutes');
-const uploadRouter = require('./routes/uploadRoutes');
+const uploadRouter = require('./routes/prescriptionRoutes');
 const contactRouter = require('./routes/contactRoutes');
 const feedbackRouter = require('./routes/feedbackRoutes');
 
