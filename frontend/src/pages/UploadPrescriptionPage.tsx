@@ -5,7 +5,7 @@ const UploadPrescriptionPage = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Upload Prescription</h1>
-      
+       
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-8">
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
           <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
