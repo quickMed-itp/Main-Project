@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/useAuth';
 import { useCart } from '../../contexts/CartContext';
 
 const Header: React.FC = () => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const auth = useAuth();
   const { totalItems } = useCart();
   const location = useLocation();
   
@@ -34,8 +34,16 @@ const Header: React.FC = () => {
   }, [location]);
   
   const handleLogout = () => {
-    logout();
+    setDropdownOpen(false);
+    auth.logout();
   };
+
+  // Early return if auth is not available
+  if (!auth) {
+    return null;
+  }
+
+  const { isAuthenticated, user } = auth;
   
   return (
     <header 

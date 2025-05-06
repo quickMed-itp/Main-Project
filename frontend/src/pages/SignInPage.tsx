@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/useAuth";
 import { Mail, Lock, AlertCircle } from "lucide-react";
 
 const SignInPage: React.FC = () => {
-  const { login, isAuthenticated } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -14,10 +14,6 @@ const SignInPage: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
-
-  React.useEffect(() => {
-    if (isAuthenticated) navigate("/");
-  }, [isAuthenticated, navigate]);
 
   const validateEmail = (email: string): boolean => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -53,8 +49,12 @@ const SignInPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await login(formData.email, formData.password);
-      navigate("/");
+      const role = await login(formData.email, formData.password);
+      if (role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     } catch (error) {
       setErrors({
         general:

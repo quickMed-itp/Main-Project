@@ -1,5 +1,5 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/useAuth';
 
 interface AdminRouteProps {
@@ -8,13 +8,18 @@ interface AdminRouteProps {
 
 const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   const { isAuthenticated, isAdmin } = useAuth();
-  console.log(useAuth())
-  if (!isAuthenticated) {
-    return <Navigate to="/signin" replace />;
-  }
+  const navigate = useNavigate();
 
-  if (!isAdmin) {
-    return <Navigate to="/" replace />;
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/signin', { replace: true });
+    } else if (!isAdmin) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, isAdmin, navigate]);
+
+  if (!isAuthenticated || !isAdmin) {
+    return null;
   }
 
   return <>{children}</>;
