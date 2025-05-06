@@ -13,6 +13,7 @@ const api = axios.create({
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -23,7 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (token && savedUser) {
         try {
-          const response = await api.get('/api/v1/auth/verify', {
+          const response = await api.get('/auth/verify', {
             headers: { Authorization: `Bearer ${token}` }
           });
 
@@ -31,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const parsedUser = JSON.parse(savedUser);
             setUser(parsedUser);
             setIsAuthenticated(true);
+            setIsAdmin(parsedUser.role === 'admin');
             api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           } else {
             console.error('Token verification failed: Invalid token');
@@ -61,14 +63,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await api.post('/login', { email, password });
-      const { user, token } = response.data;
+      const response = await api.post('/auth/login', { email, password });
+      const { user, token } = response.data.data;
       
       localStorage.setItem('pharmacy_token', token);
       localStorage.setItem('pharmacy_user', JSON.stringify(user));
       
       setUser(user);
       setIsAuthenticated(true);
+      setIsAdmin(user?.role === 'admin'); 
+
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -82,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (name: string, email: string, password: string) => {
     console.log('Registering user:', { name, email, password });
     try {
-      const response = await api.post('/signup', { name, email, password });
+      const response = await api.post('/auth/signup', { name, email, password });
       console.log('Registration response:', response.data);
       const { user, token } = response.data;
       localStorage.setItem('pharmacy_token', token);
@@ -105,7 +109,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     navigate('/login');
   };
 
-  const isAdmin = !!user && user.role === 'admin';
 
   return (
     <AuthContext.Provider value={{

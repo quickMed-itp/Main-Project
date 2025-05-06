@@ -1,22 +1,22 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/useAuth';
-import { Mail, Lock, AlertCircle } from 'lucide-react';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/useAuth";
+import { Mail, Lock, AlertCircle } from "lucide-react";
 
 const SignInPage: React.FC = () => {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
-    email: '',
-    password: ''
+    email: "",
+    password: "",
   });
-  
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
-  
+
   React.useEffect(() => {
-    if (isAuthenticated) navigate('/');
+    if (isAuthenticated) navigate("/");
   }, [isAuthenticated, navigate]);
 
   const validateEmail = (email: string): boolean => {
@@ -26,38 +26,41 @@ const SignInPage: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
-  
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = "Please enter a valid email";
     }
-    
+
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
     try {
       await login(formData.email, formData.password);
-      navigate('/');
+      navigate("/");
     } catch (error) {
       setErrors({
-        general: error instanceof Error ? error.message : 'Login failed. Please try again.'
+        general:
+          error instanceof Error
+            ? error.message
+            : "Login failed. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -76,8 +79,11 @@ const SignInPage: React.FC = () => {
           Sign in to your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Or{' '}
-          <Link to="/signup" className="font-medium text-primary-600 hover:text-primary-500">
+          Or{" "}
+          <Link
+            to="/signup"
+            className="font-medium text-primary-600 hover:text-primary-500"
+          >
             create a new account
           </Link>
         </p>
@@ -91,10 +97,13 @@ const SignInPage: React.FC = () => {
               <span>{errors.general}</span>
             </div>
           )}
-          
+
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email address
               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
@@ -108,16 +117,21 @@ const SignInPage: React.FC = () => {
                   value={formData.email}
                   onChange={handleChange}
                   className={`block w-full pl-10 pr-3 py-2 border ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
+                    errors.email ? "border-red-300" : "border-gray-300"
                   } rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
                   placeholder="Enter your email"
                 />
               </div>
-              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              )}
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
@@ -131,12 +145,14 @@ const SignInPage: React.FC = () => {
                   value={formData.password}
                   onChange={handleChange}
                   className={`block w-full pl-10 pr-3 py-2 border ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
+                    errors.password ? "border-red-300" : "border-gray-300"
                   } rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500`}
                   placeholder="Enter your password"
                 />
               </div>
-              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+              )}
             </div>
 
             <div className="flex items-center justify-between">
@@ -147,13 +163,19 @@ const SignInPage: React.FC = () => {
                   type="checkbox"
                   className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-700"
+                >
                   Remember me
                 </label>
               </div>
 
               <div className="text-sm">
-                <Link to="/forgot-password" className="font-medium text-primary-600 hover:text-primary-500">
+                <Link
+                  to="/forgot-password"
+                  className="font-medium text-primary-600 hover:text-primary-500"
+                >
                   Forgot your password?
                 </Link>
               </div>
@@ -164,10 +186,10 @@ const SignInPage: React.FC = () => {
                 type="submit"
                 disabled={isLoading}
                 className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
-                  isLoading ? 'opacity-70 cursor-not-allowed' : ''
+                  isLoading ? "opacity-70 cursor-not-allowed" : ""
                 }`}
               >
-                {isLoading ? 'Signing in...' : 'Sign in'}
+                {isLoading ? "Signing in..." : "Sign in"}
               </button>
             </div>
           </form>
