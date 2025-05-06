@@ -87,7 +87,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('Registering user:', { name, email, password });
     try {
       const response = await api.post('/auth/signup', { name, email, password });
-      console.log('Registration response:', response.data);
       const { user, token } = response.data;
       localStorage.setItem('pharmacy_token', token);
       localStorage.setItem('pharmacy_user', JSON.stringify(user));
@@ -106,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     clearAuth();
-    navigate('/login');
+    navigate('/signin');
   };
 
 

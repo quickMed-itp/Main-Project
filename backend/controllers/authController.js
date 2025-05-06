@@ -83,6 +83,50 @@ exports.login = async (req, res, next) => {
   }
 };
 
+exports.verifyToken = async (req, res) => {
+  try {
+    // Get token from header
+    const token = req.headers.authorization?.split(' ')[1];
+    console.log(token)
+    if (!token) {
+      return res.status(401).json({
+        status: 'fail',
+        message: 'No token provided'
+      });
+    }
+
+    // Verify token
+    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+    
+    // Check if user still exists
+    const currentUser = await User.findById(decoded.id);
+    if (!currentUser) {
+      return res.status(401).json({
+        status: 'fail',
+        message: 'User no longer exists'
+      });
+    }
+
+    // If everything is OK
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        valid: true,
+        user: {
+          id: currentUser._id,
+          name: currentUser.name,
+          email: currentUser.email,
+          role: currentUser.role
+        }
+      }
+    });
+  } catch (err) {
+    return res.status(401).json({
+      status: 'fail',
+      message: 'Invalid token'
+    });
+  }
+};
 exports.protect = async (req, res, next) => {
   try {
     let token;
@@ -127,3 +171,4 @@ exports.restrictTo = (...roles) => {
     next();
   };
 };
+
