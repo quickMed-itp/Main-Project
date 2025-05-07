@@ -136,7 +136,7 @@ exports.deleteBatch = catchAsync(async (req, res, next) => {
     return next(new AppError('No batch found with that ID', 404));
   }
   
-  await batch.remove();
+  await Batch.findByIdAndDelete(req.params.batchId);
   
   // Update product's total stock
   const product = await Product.findById(batch.productId);

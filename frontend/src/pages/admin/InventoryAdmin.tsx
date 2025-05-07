@@ -61,11 +61,18 @@ interface BatchResponse {
   };
 }
 
+const formatDateForInput = (dateString: string) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toISOString().split('T')[0];
+};
+
 const InventoryAdmin = () => {
   const { logout } = useAuth();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [isAddBatchModalOpen, setIsAddBatchModalOpen] = useState(false);
@@ -79,6 +86,7 @@ const InventoryAdmin = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsLoading(true);
         setError(null);
         const [batchesResponse, productsResponse] = await Promise.all([
           axios.get<BatchResponse>('/batches'),
@@ -94,6 +102,8 @@ const InventoryAdmin = () => {
             logout();
           }
         }
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchData();
@@ -101,9 +111,13 @@ const InventoryAdmin = () => {
 
   // Filter batches based on search and status
   const filteredBatches = batches.filter(batch => {
+    const productName = batch.productId?.name?.toLowerCase() || '';
+    const batchNumber = batch.batchNumber?.toLowerCase() || '';
+    const searchTermLower = searchTerm.toLowerCase();
+    
     const matchesSearch = 
-      batch.productId.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      batch.batchNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      productName.includes(searchTermLower) ||
+      batchNumber.includes(searchTermLower);
     const matchesStatus = !selectedStatus || batch.status === selectedStatus;
     
     return matchesSearch && matchesStatus;
@@ -113,6 +127,14 @@ const InventoryAdmin = () => {
     return (
       <div className="p-6 flex items-center justify-center">
         <div className="text-lg text-red-600">{error}</div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     );
   }
@@ -160,10 +182,12 @@ const InventoryAdmin = () => {
     if (!selectedBatch) return;
     
     try {
-      await axios.delete(`/batches/${selectedBatch._id}`);
-      setBatches(prevBatches => prevBatches.filter(batch => batch._id !== selectedBatch._id));
-      setIsDeleteModalOpen(false);
-      setSelectedBatch(null);
+      const response = await axios.delete(`/batches/${selectedBatch._id}`);
+      if (response.status === 200) {
+        setBatches(prevBatches => prevBatches.filter(batch => batch._id !== selectedBatch._id));
+        setIsDeleteModalOpen(false);
+        setSelectedBatch(null);
+      }
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const errorMessage = error.response?.data?.message || 'Failed to delete batch';
@@ -173,6 +197,17 @@ const InventoryAdmin = () => {
         }
       }
     }
+  };
+
+  // Update the edit form to use formatted dates
+  const handleEditClick = (batch: Batch) => {
+    setSelectedBatch(batch);
+    setEditedBatch({
+      ...batch,
+      manufacturingDate: formatDateForInput(batch.manufacturingDate),
+      expiryDate: formatDateForInput(batch.expiryDate)
+    });
+    setIsEditModalOpen(true);
   };
 
   return (
@@ -233,60 +268,66 @@ const InventoryAdmin = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredBatches.map((batch) => (
-              <tr key={batch._id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{batch.productId.name}</div>
-                  <div className="text-sm text-gray-500">{batch.productId.brand}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{batch.batchNumber}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(batch.manufacturingDate).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(batch.expiryDate).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{batch.quantity}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${batch.costPrice}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${batch.sellingPrice}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    ${batch.status === 'active' ? 'bg-green-100 text-green-800' : 
-                      batch.status === 'expired' ? 'bg-red-100 text-red-800' : 
-                      'bg-yellow-100 text-yellow-800'}`}>
-                    {batch.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    onClick={() => {
-                      setSelectedBatch(batch);
-                      setEditedBatch(batch);
-                      setIsEditModalOpen(true);
-                    }}
-                    className="text-primary-600 hover:text-primary-900 mr-4"
-                  >
-                    <Edit2 size={18} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedBatch(batch);
-                      setIsDeleteModalOpen(true);
-                    }}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+            {filteredBatches.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="px-6 py-4 text-center text-gray-500">
+                  No batches found
                 </td>
               </tr>
-            ))}
+            ) : (
+              filteredBatches.map((batch) => (
+                <tr key={batch._id}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">{batch.productId.name}</div>
+                    <div className="text-sm text-gray-500">{batch.productId.brand}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{batch.batchNumber}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(batch.manufacturingDate).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(batch.expiryDate).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{batch.quantity}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${batch.costPrice}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${batch.sellingPrice}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                      ${batch.status === 'active' ? 'bg-green-100 text-green-800' : 
+                        batch.status === 'expired' ? 'bg-red-100 text-red-800' : 
+                        'bg-yellow-100 text-yellow-800'}`}>
+                      {batch.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button
+                      onClick={() => {
+                        handleEditClick(batch);
+                      }}
+                      className="text-primary-600 hover:text-primary-900 mr-4"
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedBatch(batch);
+                        setIsDeleteModalOpen(true);
+                      }}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Add Batch Modal */}
       {isAddBatchModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Add New Batch</h2>
@@ -398,7 +439,7 @@ const InventoryAdmin = () => {
 
       {/* Edit Batch Modal */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Edit Batch</h2>
@@ -491,7 +532,7 @@ const InventoryAdmin = () => {
 
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-semibold mb-4">Confirm Delete</h2>
             <p className="text-gray-600 mb-6">
