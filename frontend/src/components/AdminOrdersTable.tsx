@@ -21,7 +21,7 @@ const AdminOrdersTable: React.FC = () => {
 
     const fetchOrders = async () => {
         try {
-            const response = await axios.get('http://localhost:5000/api/v1/orders/admin/all', {
+          const response = await axios.get('http://localhost:5000/api/v1/orders/admin/all', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
