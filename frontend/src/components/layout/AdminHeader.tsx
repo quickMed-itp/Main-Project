@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Bell, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/useAuth';
@@ -10,10 +10,30 @@ interface AdminHeaderProps {
 const AdminHeader: React.FC<AdminHeaderProps> = ({ toggleSidebar }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleLogout = () => {
+    setIsDropdownOpen(false);
     logout();
     navigate('/signin');
+  };
+
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen);
   };
 
   return (
@@ -36,37 +56,42 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ toggleSidebar }) => {
           </span>
         </button>
 
-        <div className="relative group">
-          <button className="flex items-center space-x-2 text-gray-700 group-hover:text-primary-600 transition-colors">
+        <div className="relative" ref={dropdownRef}>
+          <button 
+            onClick={toggleDropdown}
+            className="flex items-center space-x-2 text-gray-700 hover:text-primary-600 transition-colors"
+          >
             <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700">
               <User size={16} />
             </div>
             <span className="hidden md:block font-medium">{user?.name}</span>
           </button>
 
-          <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden group-hover:block">
-            <a
-              href="#"
-              className="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-700"
-            >
-              Your Profile
-            </a>
-            <a
-              href="#"
-              className="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-700"
-            >
-              Settings
-            </a>
-            <button
-              onClick={handleLogout}
-              className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-700"
-            >
-              <div className="flex items-center space-x-2">
-                <LogOut size={16} />
-                <span>Logout</span>
-              </div>
-            </button>
-          </div>
+          {isDropdownOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+              <a
+                href="#"
+                className="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-700"
+              >
+                Your Profile
+              </a>
+              <a
+                href="#"
+                className="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-700"
+              >
+                Settings
+              </a>
+              <button
+                onClick={handleLogout}
+                className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-700"
+              >
+                <div className="flex items-center space-x-2">
+                  <LogOut size={16} />
+                  <span>Logout</span>
+                </div>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

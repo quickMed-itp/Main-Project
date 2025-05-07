@@ -11,6 +11,7 @@ const profileRouter = require('./routes/profileRoutes');
 const uploadRouter = require('./routes/prescriptionRoutes');
 const contactRouter = require('./routes/contactRoutes');
 const feedbackRouter = require('./routes/feedbackRoutes');
+const batchRoutes = require('./routes/batchRoutes');
 
 const globalErrorHandler = require('./utils/errorHandler');
 
@@ -28,8 +29,13 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// Serve static files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve static files from the uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  setHeaders: (res, path) => {
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.set('Access-Control-Allow-Origin', '*');
+  }
+}));
 
 // Routes
 app.use('/api/v1/auth', authRouter);
@@ -40,6 +46,7 @@ app.use('/api/v1/profile', profileRouter);
 app.use('/api/v1/upload', uploadRouter);
 app.use('/api/v1/contact', contactRouter);
 app.use('/api/v1/feedback', feedbackRouter);
+app.use('/api/batches', batchRoutes);
 
 // Error handling
 app.use(globalErrorHandler);
