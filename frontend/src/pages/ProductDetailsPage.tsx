@@ -18,6 +18,15 @@ interface Product {
   createdAt: string;
 }
 
+interface Feedback {
+  _id: string;
+  name: string;
+  email: string;
+  feedback: string;
+  rating: number;
+  createdAt: string;
+}
+
 const ProductDetailsPage = () => {
   const { id } = useParams();
   const { addToCart } = useCart();
@@ -28,6 +37,10 @@ const ProductDetailsPage = () => {
   const [reviewText, setReviewText] = useState('');
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -35,8 +48,8 @@ const ProductDetailsPage = () => {
         setLoading(true);
         const response = await axios.get(`http://localhost:5000/api/v1/products/${id}`);
         setProduct(response.data.data.product);
-      } catch (err) {
-        console.error('Error fetching product:', err);
+      } catch {
+        console.error('Error fetching product');
         setError('Failed to fetch product details. Please try again later.');
       } finally {
         setLoading(false);
@@ -46,6 +59,23 @@ const ProductDetailsPage = () => {
     if (id) {
       fetchProduct();
     }
+  }, [id]);
+
+  useEffect(() => {
+    const fetchFeedbacks = async () => {
+      if (!id) return;
+      setFeedbackLoading(true);
+      setFeedbackError(null);
+      try {
+        const res = await axios.get(`/feedback/product/${id}`);
+        setFeedbacks(res.data.data.feedbacks);
+      } catch {
+        setFeedbackError('Failed to load reviews.');
+      } finally {
+        setFeedbackLoading(false);
+      }
+    };
+    fetchFeedbacks();
   }, [id]);
 
   const handleAddToCart = () => {
@@ -61,6 +91,33 @@ const ProductDetailsPage = () => {
 
     if (window.showToast) {
       window.showToast.success(`Added ${product.name} to cart`);
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!user || !product) return;
+    setSubmitting(true);
+    setFeedbackError(null);
+    try {
+      await axios.post('/feedback', {
+        name: user.name,
+        email: user.email,
+        feedback: reviewText,
+        rating,
+        productId: product._id,
+      });
+      setReviewText('');
+      setRating(0);
+      // Refetch feedbacks
+      const res = await axios.get(`/feedback/product/${product._id}`);
+      setFeedbacks(res.data.data.feedbacks);
+      if (window.showToast) {
+        window.showToast.success('Review submitted! Awaiting approval.');
+      }
+    } catch {
+      setFeedbackError('Failed to submit review.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -280,35 +337,37 @@ const ProductDetailsPage = () => {
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 rows={4}
               />
-              <button className="mt-4 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700">
-                Submit Review
+              {feedbackError && <div className="text-red-600 mt-2">{feedbackError}</div>}
+              <button
+                className="mt-4 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
+                onClick={handleSubmitReview}
+                disabled={submitting || !reviewText || !rating}
+              >
+                {submitting ? 'Submitting...' : 'Submit Review'}
               </button>
             </div>
           )}
 
           {/* Reviews List */}
           <div className="space-y-6">
-            {/* Sample reviews - Replace with real data when available */}
-            <div className="border-b border-gray-200 pb-6">
-              <div className="flex items-center mb-2">
-                <div className="flex items-center">
-                  {renderStars(5)}
-                  <span className="ml-2 text-sm text-gray-600">John Doe</span>
+            {feedbackLoading ? (
+              <div>Loading reviews...</div>
+            ) : feedbacks.length === 0 ? (
+              <div className="text-gray-500">No reviews yet.</div>
+            ) : (
+              feedbacks.map(fb => (
+                <div key={fb._id} className="border-b border-gray-200 pb-6">
+                  <div className="flex items-center mb-2">
+                    <div className="flex items-center">
+                      {renderStars(fb.rating)}
+                      <span className="ml-2 text-sm text-gray-600">{fb.name}</span>
+                    </div>
+                    <span className="ml-4 text-sm text-gray-500">{new Date(fb.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <p className="text-gray-600">{fb.feedback}</p>
                 </div>
-                <span className="ml-4 text-sm text-gray-500">2025-02-15</span>
-              </div>
-              <p className="text-gray-600">Excellent product! Works exactly as described and arrived quickly.</p>
-            </div>
-            <div className="border-b border-gray-200 pb-6">
-              <div className="flex items-center mb-2">
-                <div className="flex items-center">
-                  {renderStars(4)}
-                  <span className="ml-2 text-sm text-gray-600">Jane Smith</span>
-                </div>
-                <span className="ml-4 text-sm text-gray-500">2025-02-10</span>
-              </div>
-              <p className="text-gray-600">Good quality product, but delivery took longer than expected.</p>
-            </div>
+              ))
+            )}
           </div>
         </div>
       </div>
