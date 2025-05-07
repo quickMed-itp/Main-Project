@@ -169,15 +169,12 @@ exports.deleteProduct = catchAsync(async (req, res, next) => {
     return next(new AppError('No product found with that ID', 404));
   }
   
-  // Check if product has any batches
-  const batchCount = await mongoose.model('Batch').countDocuments({ productId: product._id });
-  if (batchCount > 0) {
-    return next(new AppError('Cannot delete product with existing batches. Delete batches first.', 400));
-  }
+  // Delete all batches related to this product
+  await mongoose.model('Batch').deleteMany({ productId: product._id });
   
   // TODO: Delete associated images from storage
   
-  await product.remove();
+  await product.deleteOne();
   
   res.status(204).json({
     status: 'success',
