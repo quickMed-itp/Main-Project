@@ -1,10 +1,38 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Minus, ArrowLeft, ShoppingBag } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/useAuth';
+import { toast } from 'react-toastify';
 
 const CartPage = () => {
+  const navigate = useNavigate();
   const { cart, totalPrice, removeFromCart, updateQuantity } = useCart();
+  const { isAuthenticated } = useAuth();
+
+  const handleCheckout = () => {
+    if (!isAuthenticated) {
+      toast.error('Please sign in to proceed with checkout');
+      navigate('/signin');
+      return;
+    }
+
+    if (cart.length === 0) {
+      toast.error('Your cart is empty');
+      return;
+    }
+
+    // Calculate total with tax
+    const totalWithTax = totalPrice + (totalPrice * 0.1);
+
+    // Navigate to payment gateway
+    navigate('/payment', {
+      state: {
+        totalAmount: totalWithTax,
+        items: cart
+      }
+    });
+  };
 
   if (cart.length === 0) {
     return (
@@ -124,9 +152,10 @@ const CartPage = () => {
             </div>
             
             <button
+              onClick={handleCheckout}
               className="w-full mt-6 bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 transition-colors"
             >
-              Proceed to Checkout
+              Proceed to Payment
             </button>
             
             <Link

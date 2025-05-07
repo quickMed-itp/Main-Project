@@ -1,3 +1,4 @@
+import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import AdminLayout from './components/layout/AdminLayout';
@@ -14,6 +15,7 @@ import FeedbackPage from './pages/FeedbackPage';
 import UploadPrescriptionPage from './pages/UploadPrescriptionPage';
 import OrderTrackingPage from './pages/OrderTrackingPage';
 import NotFoundPage from './pages/NotFoundPage';
+import PaymentGateway from './pages/PaymentGateway';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -29,7 +31,7 @@ import SuppliersAdmin from './pages/admin/SuppliersAdmin';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
 
-function App() {
+const App: React.FC = () => {
   return (
     <Routes>
       {/* Public Routes */}
@@ -44,6 +46,11 @@ function App() {
         <Route path="products" element={<ProductsPage />} />
         <Route path="products/:id" element={<ProductDetailsPage />} />
         <Route path="cart" element={<CartPage />} />
+        <Route path="payment" element={
+          <ProtectedRoute>
+            <PaymentGateway />
+          </ProtectedRoute>
+        } />
         <Route path="upload-prescription" element={
           <ProtectedRoute>
             <UploadPrescriptionPage />
@@ -83,6 +90,6 @@ function App() {
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
-}
+};
 
 export default App;
