@@ -11,16 +11,16 @@ router.use(authController.restrictTo('admin'));
 // Batch routes
 router
   .route('/')
-  .get(batchController.getBatchesByStatus);
+  .get(batchController.getAllBatches)
+  .post(batchController.createBatch);
 
 router
-  .route('/:status')
+  .route('/status/:status')
   .get(batchController.getBatchesByStatus);
 
 router
   .route('/product/:productId')
-  .get(batchController.getProductBatches)
-  .post(batchController.createBatch);
+  .get(batchController.getProductBatches);
 
 router
   .route('/:batchId')

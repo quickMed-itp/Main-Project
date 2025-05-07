@@ -46,7 +46,7 @@ app.use('/api/v1/profile', profileRouter);
 app.use('/api/v1/upload', uploadRouter);
 app.use('/api/v1/contact', contactRouter);
 app.use('/api/v1/feedback', feedbackRouter);
-app.use('/api/batches', batchRoutes);
+app.use('/api/v1/batches', batchRoutes);
 
 // Error handling
 app.use(globalErrorHandler);
