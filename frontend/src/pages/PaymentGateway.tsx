@@ -10,7 +10,7 @@ interface PaymentDetails {
     cardName: string;
     expiryDate: string;
     cvv: string;
-}
+} 
 
 const PaymentGateway: React.FC = () => {
     const navigate = useNavigate();
