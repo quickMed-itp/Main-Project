@@ -1,4 +1,3 @@
-import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import AdminLayout from './components/layout/AdminLayout';
@@ -33,13 +32,15 @@ import AdminRoute from './components/auth/AdminRoute';
 function App() {
   return (
     <Routes>
+      {/* Public Routes */}
+      <Route path="/signin" element={<SignInPage />} />
+      <Route path="/signup" element={<SignUpPage />} />
+      
       {/* User Routes */}
       <Route path="/" element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="about" element={<AboutPage />} />
         <Route path="contact" element={<ContactPage />} />
-        <Route path="signin" element={<SignInPage />} />
-        <Route path="signup" element={<SignUpPage />} />
         <Route path="products" element={<ProductsPage />} />
         <Route path="products/:id" element={<ProductDetailsPage />} />
         <Route path="cart" element={<CartPage />} />

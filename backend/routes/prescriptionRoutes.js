@@ -1,5 +1,5 @@
 const express = require('express');
-const uploadController = require('../controllers/uploadController');
+const uploadController = require('../controllers/uploadPrescription');
 const authController = require('../controllers/authController');
 const upload = require('../config/upload');
 
