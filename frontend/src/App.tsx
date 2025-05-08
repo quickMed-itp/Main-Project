@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 import Layout from "./components/layout/Layout";
 import AdminLayout from "./components/layout/AdminLayout";
 import PharmacyLayout from "./components/layout/PharmacyLayout";
@@ -39,9 +40,6 @@ import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import DoctorOrders from "./pages/doctor/DoctorOrders";
 import DoctorProfile from "./pages/doctor/DoctorProfile";
 import DoctorSettings from "./pages/doctor/DoctorSettings";
-
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import AdminRoute from "./components/auth/AdminRoute";
 
 function App() {
   return (
@@ -86,14 +84,11 @@ function App() {
       </Route>
 
       {/* Pharmacy Routes */}
-      <Route
-        path="/pharmacy"
-        element={
-          <ProtectedRoute>
-            <PharmacyLayout />
-          </ProtectedRoute>
-        }
-      >
+      <Route path="/pharmacy" element={
+        <ProtectedRoute requiredRole="pharmacy">
+          <PharmacyLayout />
+        </ProtectedRoute>
+      }>
         <Route path="dashboard" element={<PharmacyDashboard />} />
         <Route path="orders" element={<PharmacyOrders />} />
         <Route path="profile" element={<PharmacyProfile />} />
@@ -102,14 +97,11 @@ function App() {
       </Route>
 
       {/* Doctor Routes */}
-      <Route
-        path="/doctor"
-        element={
-          <ProtectedRoute>
-            <DoctorLayout />
-          </ProtectedRoute>
-        }
-      >
+      <Route path="/doctor" element={
+        <ProtectedRoute requiredRole="doctor">
+          <DoctorLayout />
+        </ProtectedRoute>
+      }>
         <Route path="dashboard" element={<DoctorDashboard />} />
         <Route path="orders" element={<DoctorOrders />} />
         <Route path="profile" element={<DoctorProfile />} />
@@ -118,14 +110,11 @@ function App() {
       </Route>
 
       {/* Admin Routes */}
-      <Route
-        path="/admin"
-        element={
-          <AdminRoute>
-            <AdminLayout />
-          </AdminRoute>
-        }
-      >
+      <Route path="/admin" element={
+        <ProtectedRoute requiredRole="admin">
+          <AdminLayout />
+        </ProtectedRoute>
+      }>
         <Route index element={<AdminDashboard />} />
         <Route path="prescriptions" element={<PrescriptionsAdmin />} />
         <Route path="products" element={<ProductsAdmin />} />

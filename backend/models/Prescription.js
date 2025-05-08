@@ -6,6 +6,14 @@ const prescriptionSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  patientName: {
+    type: String,
+    required: true
+  },
+  patientAge: {
+    type: Number,
+    required: true
+  },
   filePath: {
     type: String,
     required: true
@@ -21,7 +29,17 @@ const prescriptionSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
+});
+
+// Update the updatedAt timestamp before saving
+prescriptionSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
 });
 
 module.exports = mongoose.model('Prescription', prescriptionSchema);

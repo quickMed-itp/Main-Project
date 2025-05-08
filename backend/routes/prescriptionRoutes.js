@@ -5,11 +5,27 @@ const upload = require('../config/upload');
 
 const router = express.Router();
 
+// Protect all routes
 router.use(authController.protect);
 
+// User routes
 router
   .route('/')
   .post(upload.single('prescription'), uploadController.uploadPrescription)
   .get(uploadController.getUserPrescriptions);
+
+router
+  .route('/:id')
+  .get(uploadController.getPrescriptionById)
+  .patch(upload.single('prescription'), uploadController.updatePrescription)
+  .delete(uploadController.deletePrescription);
+
+// Admin/Pharmacy routes
+router
+  .route('/:id/status')
+  .patch(
+    authController.restrictTo('admin', 'pharmacy'),
+    uploadController.updatePrescriptionStatus
+  );
 
 module.exports = router;
