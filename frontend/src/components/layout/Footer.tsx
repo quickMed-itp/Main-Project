@@ -3,10 +3,31 @@ import { Link } from 'react-router-dom';
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Pill, X } from 'lucide-react';
 import axios from 'axios';
 
+interface RegisterForm {
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+  address: string;
+  pharmacyRegNumber: string;
+  doctorId: string;
+}
+
+interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+  role: 'pharmacy' | 'doctor';
+  address?: string;
+  pharmacyRegNumber?: string;
+  doctorId?: string;
+}
+
 const Footer: React.FC = () => {
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [registerRole, setRegisterRole] = useState<'pharmacy' | 'doctor' | null>(null);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<RegisterForm>({
     name: '',
     email: '',
     password: '',
@@ -37,12 +58,12 @@ const Footer: React.FC = () => {
     setRegisterSuccess(null);
     setRegisterLoading(true);
     try {
-      const payload: any = {
+      const payload: RegisterPayload = {
         name: form.name,
         email: form.email,
         password: form.password,
         phone: form.phone,
-        role: registerRole,
+        role: registerRole!,
       };
       if (registerRole === 'pharmacy') {
         payload.pharmacyRegNumber = form.pharmacyRegNumber;
@@ -125,7 +146,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <button
-                  className="text-gray-300 hover:text-primary-400 transition-colors underline bg-transparent border-none p-0 cursor-pointer"
+                  className="text-gray-300 hover:text-primary-400 transition-colors bg-transparent border-none p-0 cursor-pointer"
                   onClick={() => handleOpenRegister('pharmacy')}
                 >
                   Register as Pharmacist
@@ -133,7 +154,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <button
-                  className="text-gray-300 hover:text-primary-400 transition-colors underline bg-transparent border-none p-0 cursor-pointer"
+                  className="text-gray-300 hover:text-primary-400 transition-colors bg-transparent border-none p-0 cursor-pointer"
                   onClick={() => handleOpenRegister('doctor')}
                 >
                   Register as Doctor

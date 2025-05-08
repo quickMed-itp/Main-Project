@@ -1,47 +1,47 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import Layout from './components/layout/Layout';
-import AdminLayout from './components/layout/AdminLayout';
-import PharmacyLayout from './components/layout/PharmacyLayout';
-import DoctorLayout from './components/layout/DoctorLayout';
-import HomePage from './pages/HomePage';
-import AboutPage from './pages/AboutPage';
-import ContactPage from './pages/ContactPage';
-import SignInPage from './pages/SignInPage';
-import SignUpPage from './pages/SignUpPage';
-import ProductsPage from './pages/ProductsPage';
-import ProductDetailsPage from './pages/ProductDetailsPage';
-import CartPage from './pages/CartPage';
-import ProfilePage from './pages/ProfilePage';
-import FeedbackPage from './pages/FeedbackPage';
-import UploadPrescriptionPage from './pages/UploadPrescriptionPage';
-import OrderTrackingPage from './pages/OrderTrackingPage';
-import NotFoundPage from './pages/NotFoundPage';
+import { Routes, Route, Navigate } from "react-router-dom";
+import Layout from "./components/layout/Layout";
+import AdminLayout from "./components/layout/AdminLayout";
+import PharmacyLayout from "./components/layout/PharmacyLayout";
+import DoctorLayout from "./components/layout/DoctorLayout";
+import HomePage from "./pages/HomePage";
+import AboutPage from "./pages/AboutPage";
+import ContactPage from "./pages/ContactPage";
+import SignInPage from "./pages/SignInPage";
+import SignUpPage from "./pages/SignUpPage";
+import ProductsPage from "./pages/ProductsPage";
+import ProductDetailsPage from "./pages/ProductDetailsPage";
+import CartPage from "./pages/CartPage";
+import ProfilePage from "./pages/ProfilePage";
+import FeedbackPage from "./pages/FeedbackPage";
+import UploadPrescriptionPage from "./pages/UploadPrescriptionPage";
+import OrderTrackingPage from "./pages/OrderTrackingPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 // Admin Pages
-import AdminDashboard from './pages/admin/AdminDashboard';
-import PrescriptionsAdmin from './pages/admin/PrescriptionsAdmin';
-import ProductsAdmin from './pages/admin/ProductsAdmin';
-import MedicinesAdmin from './pages/admin/MedicinesAdmin';
-import OrdersAdmin from './pages/admin/OrdersAdmin';
-import CustomersAdmin from './pages/admin/CustomersAdmin';
-import FeedbackAdmin from './pages/admin/FeedbackAdmin';
-import InventoryAdmin from './pages/admin/InventoryAdmin';
-import SuppliersAdmin from './pages/admin/SuppliersAdmin';
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import PrescriptionsAdmin from "./pages/admin/PrescriptionsAdmin";
+import ProductsAdmin from "./pages/admin/ProductsAdmin";
+import MedicinesAdmin from "./pages/admin/MedicinesAdmin";
+import OrdersAdmin from "./pages/admin/OrdersAdmin";
+import CustomersAdmin from "./pages/admin/CustomersAdmin";
+import FeedbackAdmin from "./pages/admin/FeedbackAdmin";
+import InventoryAdmin from "./pages/admin/InventoryAdmin";
+import SuppliersAdmin from "./pages/admin/SuppliersAdmin";
 
 // Pharmacy Pages
-import PharmacyDashboard from './pages/pharmacy/PharmacyDashboard';
-import PharmacyOrders from './pages/pharmacy/PharmacyOrders';
-import PharmacyProfile from './pages/pharmacy/PharmacyProfile';
-import PharmacySettings from './pages/pharmacy/PharmacySettings';
+import PharmacyDashboard from "./pages/pharmacy/PharmacyDashboard";
+import PharmacyOrders from "./pages/pharmacy/PharmacyOrders";
+import PharmacyProfile from "./pages/pharmacy/PharmacyProfile";
+import PharmacySettings from "./pages/pharmacy/PharmacySettings";
 
 // Doctor Pages
-import DoctorDashboard from './pages/doctor/DoctorDashboard';
-import DoctorOrders from './pages/doctor/DoctorOrders';
-import DoctorProfile from './pages/doctor/DoctorProfile';
-import DoctorSettings from './pages/doctor/DoctorSettings';
+import DoctorDashboard from "./pages/doctor/DoctorDashboard";
+import DoctorOrders from "./pages/doctor/DoctorOrders";
+import DoctorProfile from "./pages/doctor/DoctorProfile";
+import DoctorSettings from "./pages/doctor/DoctorSettings";
 
-import ProtectedRoute from './components/auth/ProtectedRoute';
-import AdminRoute from './components/auth/AdminRoute';
+import ProtectedRoute from "./components/auth/ProtectedRoute";
+import AdminRoute from "./components/auth/AdminRoute";
 
 function App() {
   return (
@@ -49,7 +49,7 @@ function App() {
       {/* Public Routes */}
       <Route path="/signin" element={<SignInPage />} />
       <Route path="/signup" element={<SignUpPage />} />
-      
+
       {/* User Routes */}
       <Route path="/" element={<Layout />}>
         <Route index element={<HomePage />} />
@@ -58,30 +58,42 @@ function App() {
         <Route path="products" element={<ProductsPage />} />
         <Route path="products/:id" element={<ProductDetailsPage />} />
         <Route path="cart" element={<CartPage />} />
-        <Route path="upload-prescription" element={
-          <ProtectedRoute>
-            <UploadPrescriptionPage />
-          </ProtectedRoute>
-        } />
-        <Route path="track-order" element={
-          <ProtectedRoute>
-            <OrderTrackingPage />
-          </ProtectedRoute>
-        } />
-        <Route path="profile" element={
-          <ProtectedRoute>
-            <ProfilePage />
-          </ProtectedRoute>
-        } />
+        <Route
+          path="upload-prescription"
+          element={
+            <ProtectedRoute>
+              <UploadPrescriptionPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="track-order"
+          element={
+            <ProtectedRoute>
+              <OrderTrackingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="feedback" element={<FeedbackPage />} />
       </Route>
-      
+
       {/* Pharmacy Routes */}
-      <Route path="/pharmacy" element={
-        <ProtectedRoute>
-          <PharmacyLayout />
-        </ProtectedRoute>
-      }>
+      <Route
+        path="/pharmacy"
+        element={
+          <ProtectedRoute>
+            <PharmacyLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="dashboard" element={<PharmacyDashboard />} />
         <Route path="orders" element={<PharmacyOrders />} />
         <Route path="profile" element={<PharmacyProfile />} />
@@ -90,24 +102,30 @@ function App() {
       </Route>
 
       {/* Doctor Routes */}
-      <Route path="/doctor" element={
-        <ProtectedRoute>
-          <DoctorLayout />
-        </ProtectedRoute>
-      }>
+      <Route
+        path="/doctor"
+        element={
+          <ProtectedRoute>
+            <DoctorLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="dashboard" element={<DoctorDashboard />} />
         <Route path="orders" element={<DoctorOrders />} />
         <Route path="profile" element={<DoctorProfile />} />
         <Route path="settings" element={<DoctorSettings />} />
         <Route index element={<Navigate to="dashboard" replace />} />
       </Route>
-      
+
       {/* Admin Routes */}
-      <Route path="/admin" element={
-        <AdminRoute>
-          <AdminLayout />
-        </AdminRoute>
-      }>
+      <Route
+        path="/admin"
+        element={
+          <AdminRoute>
+            <AdminLayout />
+          </AdminRoute>
+        }
+      >
         <Route index element={<AdminDashboard />} />
         <Route path="prescriptions" element={<PrescriptionsAdmin />} />
         <Route path="products" element={<ProductsAdmin />} />
@@ -118,7 +136,7 @@ function App() {
         <Route path="inventory" element={<InventoryAdmin />} />
         <Route path="suppliers" element={<SuppliersAdmin />} />
       </Route>
-      
+
       {/* 404 Route */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
