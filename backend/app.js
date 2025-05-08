@@ -12,6 +12,7 @@ const uploadRouter = require('./routes/prescriptionRoutes');
 const contactRouter = require('./routes/contactRoutes');
 const feedbackRouter = require('./routes/feedbackRoutes');
 const batchRoutes = require('./routes/batchRoutes');
+const medicineRouter = require('./routes/medicineRoutes');
 
 const globalErrorHandler = require('./utils/errorHandler');
 
@@ -47,6 +48,7 @@ app.use('/api/v1/upload', uploadRouter);
 app.use('/api/v1/contact', contactRouter);
 app.use('/api/v1/feedback', feedbackRouter);
 app.use('/api/v1/batches', batchRoutes);
+app.use('/api/v1/medicines', medicineRouter);
 
 // Error handling
 app.use(globalErrorHandler);
