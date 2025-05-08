@@ -5,7 +5,6 @@ import { AuthContextType, User } from './authTypes.ts';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
-// Create an axios instance with the base URL
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL
 });
@@ -13,37 +12,42 @@ const api = axios.create({
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isPharmacy, setIsPharmacy] = useState(false);
+  const [isDoctor, setIsDoctor] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const initializeAuth = async () => {
+      setIsLoading(true);
       const token = localStorage.getItem('pharmacy_token');
       const savedUser = localStorage.getItem('pharmacy_user');
 
       if (token && savedUser) {
         try {
-          const response = await api.get('/api/v1/auth/verify', {
+          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          
+          const response = await api.get('/auth/verify', {
             headers: { Authorization: `Bearer ${token}` }
           });
 
-          if (response.data.valid) {
+          if (response.data.data?.valid) {
             const parsedUser = JSON.parse(savedUser);
             setUser(parsedUser);
             setIsAuthenticated(true);
-            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            setIsAdmin(parsedUser.role === 'admin');
+            setIsPharmacy(parsedUser.role === 'pharmacy');
+            setIsDoctor(parsedUser.role === 'doctor');
           } else {
-            console.error('Token verification failed: Invalid token');
             clearAuth();
           }
         } catch (error) {
-          if (axios.isAxiosError(error)) {
-            console.error('Token verification failed:', error.response?.data?.message || error.message);
-          } else {
-            console.error('Token verification failed:', error instanceof Error ? error.message : 'Unknown error');
-          }
+          console.error('Token verification failed:', error);
           clearAuth();
         }
+      } else {
+        clearAuth();
       }
       setIsLoading(false);
     };
@@ -54,64 +58,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearAuth = () => {
     localStorage.removeItem('pharmacy_token');
     localStorage.removeItem('pharmacy_user');
+    delete api.defaults.headers.common['Authorization'];
     setUser(null);
     setIsAuthenticated(false);
-    delete api.defaults.headers.common['Authorization'];
+    setIsAdmin(false);
+    setIsPharmacy(false);
+    setIsDoctor(false);
   };
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await api.post('/login', { email, password });
-      const { user, token } = response.data;
+      const response = await api.post('/auth/login', { email, password });
+      const { user } = response.data.data;
+      const { token } = response.data;
       
       localStorage.setItem('pharmacy_token', token);
       localStorage.setItem('pharmacy_user', JSON.stringify(user));
-      
+
       setUser(user);
       setIsAuthenticated(true);
+      setIsAdmin(user?.role === 'admin');
+      setIsPharmacy(user?.role === 'pharmacy');
+      setIsDoctor(user?.role === 'doctor');
+
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      return user?.role;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         throw new Error(error.response?.data?.message || 'Login failed');
-      } else {
-        throw new Error(error instanceof Error ? error.message : 'Login failed');
       }
+      throw new Error('Login failed');
     }
   };
 
   const register = async (name: string, email: string, password: string) => {
-    console.log('Registering user:', { name, email, password });
     try {
-      const response = await api.post('/signup', { name, email, password });
-      console.log('Registration response:', response.data);
+      const response = await api.post('/auth/signup', { name, email, password });
       const { user, token } = response.data;
       localStorage.setItem('pharmacy_token', token);
       localStorage.setItem('pharmacy_user', JSON.stringify(user));
       
       setUser(user);
       setIsAuthenticated(true);
+      setIsAdmin(user?.role === 'admin');
+      setIsPharmacy(user?.role === 'pharmacy');
+      setIsDoctor(user?.role === 'doctor');
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         throw new Error(error.response?.data?.message || 'Registration failed');
-      } else {
-        throw new Error(error instanceof Error ? error.message : 'Registration failed');
       }
+      throw new Error('Registration failed');
     }
   };
 
   const logout = () => {
     clearAuth();
-    navigate('/login');
+    setTimeout(() => {
+      navigate('/signin');
+    }, 0);
   };
-
-  const isAdmin = !!user && user.role === 'admin';
 
   return (
     <AuthContext.Provider value={{
       user,
       isAuthenticated,
       isAdmin,
+      isPharmacy,
+      isDoctor,
       login,
       register,
       logout,

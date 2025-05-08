@@ -1,30 +1,33 @@
 const express = require('express');
 const productController = require('../controllers/productController');
 const authController = require('../controllers/authController');
+const { uploadProductFiles } = require('../middleware/upload');
 
 const router = express.Router();
 
-router
-  .route('/')
-  .get(productController.getAllProducts)
-  .post(
-    authController.protect,
-    authController.restrictTo('admin'),
-    productController.createProduct
-  );
+// Public routes
+router.get('/', productController.getAllProducts);
+router.get('/:id', productController.getProduct);
 
-router
-  .route('/:id')
-  .get(productController.getProduct)
-  .patch(
-    authController.protect,
-    authController.restrictTo('admin'),
-    productController.updateProduct
-  )
-  .delete(
-    authController.protect,
-    authController.restrictTo('admin'),
-    productController.deleteProduct
-  );
+// Protected routes (admin only)
+router.use(authController.protect);
+router.use(authController.restrictTo('admin'));
+
+// Create product route
+router.post(
+  '/',
+  uploadProductFiles,
+  productController.createProduct
+);
+
+// Update product route
+router.patch(
+  '/:id',
+  uploadProductFiles,
+  productController.updateProduct
+);
+
+// Delete product route
+router.delete('/:id', productController.deleteProduct);
 
 module.exports = router;

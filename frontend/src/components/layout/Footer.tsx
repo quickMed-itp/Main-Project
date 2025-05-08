@@ -1,8 +1,91 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Pill } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Pill, X } from 'lucide-react';
+import axios from 'axios';
+
+interface RegisterForm {
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+  address: string;
+  pharmacyRegNumber: string;
+  doctorId: string;
+}
+
+interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+  role: 'pharmacy' | 'doctor';
+  address?: string;
+  pharmacyRegNumber?: string;
+  doctorId?: string;
+}
 
 const Footer: React.FC = () => {
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [registerRole, setRegisterRole] = useState<'pharmacy' | 'doctor' | null>(null);
+  const [form, setForm] = useState<RegisterForm>({
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    address: '',
+    pharmacyRegNumber: '',
+    doctorId: '',
+  });
+  const [registerLoading, setRegisterLoading] = useState(false);
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [registerSuccess, setRegisterSuccess] = useState<string | null>(null);
+
+  const handleOpenRegister = (role: 'pharmacy' | 'doctor') => {
+    setRegisterRole(role);
+    setShowRegisterModal(true);
+    setForm({ name: '', email: '', password: '', phone: '', address: '', pharmacyRegNumber: '', doctorId: '' });
+    setRegisterError(null);
+    setRegisterSuccess(null);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegisterError(null);
+    setRegisterSuccess(null);
+    setRegisterLoading(true);
+    try {
+      const payload: RegisterPayload = {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        phone: form.phone,
+        role: registerRole!,
+      };
+      if (registerRole === 'pharmacy') {
+        payload.pharmacyRegNumber = form.pharmacyRegNumber;
+        payload.address = form.address;
+      }
+      if (registerRole === 'doctor') {
+        payload.doctorId = form.doctorId;
+      }
+      await axios.post('/auth/signup', payload);
+      setRegisterSuccess('Registration successful! You can now sign in.');
+      setTimeout(() => setShowRegisterModal(false), 2000);
+    } catch (err: unknown) {
+      if (axios.isAxiosError && axios.isAxiosError(err)) {
+        setRegisterError(err.response?.data?.message || 'Registration failed.');
+      } else {
+        setRegisterError('Registration failed.');
+      }
+    } finally {
+      setRegisterLoading(false);
+    }
+  };
+
   return (
     <footer className="bg-gray-800 text-white pt-12 pb-8">
       <div className="container mx-auto px-4">
@@ -60,6 +143,22 @@ const Footer: React.FC = () => {
                 <Link to="/feedback" className="text-gray-300 hover:text-primary-400 transition-colors">
                   Feedback
                 </Link>
+              </li>
+              <li>
+                <button
+                  className="text-gray-300 hover:text-primary-400 transition-colors bg-transparent border-none p-0 cursor-pointer"
+                  onClick={() => handleOpenRegister('pharmacy')}
+                >
+                  Register as Pharmacist
+                </button>
+              </li>
+              <li>
+                <button
+                  className="text-gray-300 hover:text-primary-400 transition-colors bg-transparent border-none p-0 cursor-pointer"
+                  onClick={() => handleOpenRegister('doctor')}
+                >
+                  Register as Doctor
+                </button>
               </li>
             </ul>
           </div>
@@ -150,6 +249,121 @@ const Footer: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Register Modal */}
+      {showRegisterModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+          <div className="bg-white text-gray-900 rounded-lg p-6 w-full max-w-md relative">
+            <button className="absolute top-4 right-4 text-gray-500 hover:text-gray-700" onClick={() => setShowRegisterModal(false)}>
+              <X size={24} />
+            </button>
+            <h2 className="text-xl font-semibold mb-4">Register as {registerRole === 'pharmacy' ? 'Pharmacist' : 'Doctor'}</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Password</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                <input
+                  type="text"
+                  name="phone"
+                  value={form.phone}
+                  onChange={handleChange}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900"
+                  required
+                />
+              </div>
+              {registerRole === 'pharmacy' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Pharmacy Registration Number</label>
+                    <input
+                      type="text"
+                      name="pharmacyRegNumber"
+                      value={form.pharmacyRegNumber}
+                      onChange={handleChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Address</label>
+                    <input
+                      type="text"
+                      name="address"
+                      value={form.address}
+                      onChange={handleChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900"
+                      required
+                    />
+                  </div>
+                </>
+              )}
+              {registerRole === 'doctor' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Doctor ID</label>
+                  <input
+                    type="text"
+                    name="doctorId"
+                    value={form.doctorId}
+                    onChange={handleChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-gray-900"
+                    required
+                  />
+                </div>
+              )}
+              {registerError && <div className="text-red-600 text-sm mt-2">{registerError}</div>}
+              {registerSuccess && <div className="text-green-600 text-sm mt-2">{registerSuccess}</div>}
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowRegisterModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                  disabled={registerLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                  disabled={registerLoading}
+                >
+                  {registerLoading ? 'Registering...' : 'Register'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </footer>
   );
 };
