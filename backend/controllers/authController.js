@@ -82,6 +82,14 @@ exports.login = async (req, res, next) => {
       });
     }
 
+    // Prevent blocked users from logging in
+    if (user.status === 'blocked') {
+      return res.status(403).json({
+        status: 'fail',
+        message: 'Your account is blocked. Please contact admin to activate your account.'
+      });
+    }
+
     const token = signToken(user._id);
 
     res.status(200).json({
