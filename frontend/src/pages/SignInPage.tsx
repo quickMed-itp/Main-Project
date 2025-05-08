@@ -50,17 +50,24 @@ const SignInPage: React.FC = () => {
     setIsLoading(true);
     try {
       const role = await login(formData.email, formData.password);
-      if (role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/');
+      
+      // Redirect based on role
+      switch (role) {
+        case 'admin':
+          navigate('/admin/dashboard');
+          break;
+        case 'pharmacy':
+          navigate('/pharmacy/dashboard');
+          break;
+        case 'doctor':
+          navigate('/doctor/dashboard');
+          break;
+        default:
+          navigate('/');
       }
-    } catch (error) {
+    } catch (err) {
       setErrors({
-        general:
-          error instanceof Error
-            ? error.message
-            : "Login failed. Please try again.",
+        general: err instanceof Error ? err.message : 'An error occurred during sign in',
       });
     } finally {
       setIsLoading(false);
