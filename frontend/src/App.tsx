@@ -1,6 +1,8 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import AdminLayout from './components/layout/AdminLayout';
+import PharmacyLayout from './components/layout/PharmacyLayout';
+import DoctorLayout from './components/layout/DoctorLayout';
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
@@ -25,6 +27,18 @@ import CustomersAdmin from './pages/admin/CustomersAdmin';
 import FeedbackAdmin from './pages/admin/FeedbackAdmin';
 import InventoryAdmin from './pages/admin/InventoryAdmin';
 import SuppliersAdmin from './pages/admin/SuppliersAdmin';
+
+// Pharmacy Pages
+import PharmacyDashboard from './pages/pharmacy/PharmacyDashboard';
+import PharmacyOrders from './pages/pharmacy/PharmacyOrders';
+import PharmacyProfile from './pages/pharmacy/PharmacyProfile';
+import PharmacySettings from './pages/pharmacy/PharmacySettings';
+
+// Doctor Pages
+import DoctorDashboard from './pages/doctor/DoctorDashboard';
+import DoctorOrders from './pages/doctor/DoctorOrders';
+import DoctorProfile from './pages/doctor/DoctorProfile';
+import DoctorSettings from './pages/doctor/DoctorSettings';
 
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
@@ -60,6 +74,32 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="feedback" element={<FeedbackPage />} />
+      </Route>
+      
+      {/* Pharmacy Routes */}
+      <Route path="/pharmacy" element={
+        <ProtectedRoute>
+          <PharmacyLayout />
+        </ProtectedRoute>
+      }>
+        <Route path="dashboard" element={<PharmacyDashboard />} />
+        <Route path="orders" element={<PharmacyOrders />} />
+        <Route path="profile" element={<PharmacyProfile />} />
+        <Route path="settings" element={<PharmacySettings />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+      </Route>
+
+      {/* Doctor Routes */}
+      <Route path="/doctor" element={
+        <ProtectedRoute>
+          <DoctorLayout />
+        </ProtectedRoute>
+      }>
+        <Route path="dashboard" element={<DoctorDashboard />} />
+        <Route path="orders" element={<DoctorOrders />} />
+        <Route path="profile" element={<DoctorProfile />} />
+        <Route path="settings" element={<DoctorSettings />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
       </Route>
       
       {/* Admin Routes */}

@@ -9,6 +9,8 @@ export interface User {
     user: User | null;
     isAuthenticated: boolean;
     isAdmin: boolean;
+    isPharmacy: boolean;
+    isDoctor: boolean;
     login: (email: string, password: string) => Promise<string | undefined>;
     register: (name: string, email: string, password: string) => Promise<void>;
     logout: () => void;
