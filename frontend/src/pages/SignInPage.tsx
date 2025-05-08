@@ -54,7 +54,7 @@ const SignInPage: React.FC = () => {
       // Redirect based on role
       switch (role) {
         case 'admin':
-          navigate('/admin/dashboard');
+          navigate('/admin');
           break;
         case 'pharmacy':
           navigate('/pharmacy/dashboard');
