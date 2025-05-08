@@ -2,6 +2,8 @@ const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const path = require('path');
+const mongoose = require('mongoose');
+require('dotenv').config();
 
 const authRouter = require('./routes/authRoutes');
 const productRouter = require('./routes/productRoutes');
@@ -13,6 +15,7 @@ const contactRouter = require('./routes/contactRoutes');
 const feedbackRouter = require('./routes/feedbackRoutes');
 const batchRoutes = require('./routes/batchRoutes');
 const medicineRouter = require('./routes/medicineRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 const globalErrorHandler = require('./utils/errorHandler');
 
@@ -49,6 +52,7 @@ app.use('/api/v1/contact', contactRouter);
 app.use('/api/v1/feedback', feedbackRouter);
 app.use('/api/v1/batches', batchRoutes);
 app.use('/api/v1/medicines', medicineRouter);
+app.use('/api/users', userRoutes);
 
 // Error handling
 app.use(globalErrorHandler);

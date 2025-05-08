@@ -4,27 +4,47 @@ const bcrypt = require('bcryptjs');
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    required: [true, 'Name is required'],
+    trim: true
   },
   email: {
     type: String,
-    required: true,
-    unique: true
+    required: [true, 'Email is required'],
+    unique: true,
+    lowercase: true,
+    trim: true
   },
   password: {
     type: String,
-    required: true
+    required: [true, 'Password is required'],
+    minlength: 6,
+    select: false
   },
   phone: {
-    type: String
+    type: String,
+    trim: true
+  },
+  age: {
+    type: Number,
+    min: [0, 'Age cannot be negative'],
+    validate: {
+      validator: Number.isInteger,
+      message: 'Age must be a whole number'
+    }
   },
   address: {
-    type: String
+    type: String,
+    trim: true
   },
   role: {
     type: String,
     enum: ['user', 'pharmacy', 'doctor', 'admin'],
     default: 'user'
+  },
+  status: {
+    type: String,
+    enum: ['active', 'blocked'],
+    default: 'active'
   },
   doctorId: {
     type: String,
@@ -37,12 +57,21 @@ const userSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
 });
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
+  next();
+});
+
+userSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
   next();
 });
 
