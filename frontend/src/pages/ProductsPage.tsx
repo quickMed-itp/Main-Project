@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Filter, Search, X, ShoppingCart, Heart, ArrowUpDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { mockProducts } from '../data/mockData';
-import { Product } from '../types';
+import axios from 'axios';
 import { useCart } from '../contexts/CartContext';
+
+interface Product {
+  _id: string;
+  name: string;
+  brand: string;
+  category: string;
+  description: string;
+  mainImage: string;
+  subImages: string[];
+  totalStock: number;
+  price: number;
+  createdAt: string;
+}
 
 const ProductsPage: React.FC = () => {
   const { addToCart } = useCart();
@@ -12,18 +24,32 @@ const ProductsPage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortOption, setSortOption] = useState<string>('');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
   const [showFilters, setShowFilters] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Unique categories
-  const categories = Array.from(
-    new Set(mockProducts.map(product => product.category))
-  );
-  
-  // Initialize products
+  // Fetch products from backend
   useEffect(() => {
-    setProducts(mockProducts);
-    setFilteredProducts(mockProducts);
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get('http://localhost:5000/api/v1/products');
+        setProducts(response.data.data.products);
+        setFilteredProducts(response.data.data.products);
+        
+        // Set max price for range slider
+        const maxPrice = Math.max(...response.data.data.products.map((p: Product) => p.price));
+        setPriceRange([0, Math.ceil(maxPrice)]);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Failed to fetch products. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
   }, []);
   
   // Handle filtering and sorting
@@ -42,7 +68,7 @@ const ProductsPage: React.FC = () => {
         product => 
           product.name.toLowerCase().includes(query) || 
           product.description.toLowerCase().includes(query) ||
-          (product.tags && product.tags.some(tag => tag.toLowerCase().includes(query)))
+          product.brand.toLowerCase().includes(query)
       );
     }
     
@@ -75,10 +101,10 @@ const ProductsPage: React.FC = () => {
   
   const handleAddToCart = (product: Product) => {
     addToCart({
-      productId: product.id,
+      productId: product._id,
       name: product.name,
       price: product.price,
-      image: product.image,
+      image: `http://localhost:5000/uploads/${product.mainImage}`,
       quantity: 1,
     });
     
@@ -91,12 +117,40 @@ const ProductsPage: React.FC = () => {
     setActiveCategory('all');
     setSearchQuery('');
     setSortOption('');
-    setPriceRange([0, 100]);
+    setPriceRange([0, Math.max(...products.map(p => p.price))]);
   };
   
   const toggleFilters = () => {
     setShowFilters(!showFilters);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading products...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <strong className="font-bold">Error!</strong>
+            <span className="block sm:inline"> {error}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -164,7 +218,7 @@ const ProductsPage: React.FC = () => {
                 >
                   All Products
                 </button>
-                {categories.map(category => (
+                {Array.from(new Set(products.map(p => p.category))).map(category => (
                   <button
                     key={category}
                     onClick={() => setActiveCategory(category)}
@@ -174,7 +228,7 @@ const ProductsPage: React.FC = () => {
                         : 'text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    {category}
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
                   </button>
                 ))}
               </div>
@@ -185,8 +239,8 @@ const ProductsPage: React.FC = () => {
               <div className="px-2">
                 <input
                   type="range"
-                  min="0"
-                  max="100"
+                  min={priceRange[0]}
+                  max={priceRange[1]}
                   value={priceRange[1]}
                   onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
@@ -233,7 +287,7 @@ const ProductsPage: React.FC = () => {
                     >
                       All Products
                     </button>
-                    {categories.map(category => (
+                    {Array.from(new Set(products.map(p => p.category))).map(category => (
                       <button
                         key={category}
                         onClick={() => {
@@ -246,7 +300,7 @@ const ProductsPage: React.FC = () => {
                             : 'text-gray-700'
                         }`}
                       >
-                        {category}
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
                       </button>
                     ))}
                   </div>
@@ -257,8 +311,8 @@ const ProductsPage: React.FC = () => {
                   <div className="px-2">
                     <input
                       type="range"
-                      min="0"
-                      max="100"
+                      min={priceRange[0]}
+                      max={priceRange[1]}
                       value={priceRange[1]}
                       onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
                       className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
@@ -297,20 +351,15 @@ const ProductsPage: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredProducts.map(product => (
                   <div
-                    key={product.id}
+                    key={product._id}
                     className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300"
                   >
-                    <Link to={`/products/${product.id}`} className="block relative h-48 overflow-hidden group">
+                    <Link to={`/products/${product._id}`} className="block relative h-48 overflow-hidden group">
                       <img
-                        src={product.image}
+                        src={`http://localhost:5000/uploads/${product.mainImage}`}
                         alt={product.name}
                         className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                       />
-                      {product.discount && (
-                        <div className="absolute top-2 left-2 bg-accent-500 text-white text-xs font-bold px-2 py-1 rounded">
-                          {product.discount}% OFF
-                        </div>
-                      )}
                       <button
                         className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
                         aria-label="Add to favorites"
@@ -320,7 +369,7 @@ const ProductsPage: React.FC = () => {
                     </Link>
                     <div className="p-4">
                       <p className="text-sm text-primary-600 font-medium mb-1">{product.category}</p>
-                      <Link to={`/products/${product.id}`}>
+                      <Link to={`/products/${product._id}`}>
                         <h3 className="text-lg font-semibold mb-1 text-gray-800 hover:text-primary-600">
                           {product.name}
                         </h3>
@@ -330,11 +379,6 @@ const ProductsPage: React.FC = () => {
                       <div className="flex justify-between items-center">
                         <div className="flex items-baseline">
                           <span className="text-lg font-bold text-gray-800">${product.price.toFixed(2)}</span>
-                          {product.discount && (
-                            <span className="text-sm text-gray-500 line-through ml-2">
-                              ${(product.price * (1 + product.discount / 100)).toFixed(2)}
-                            </span>
-                          )}
                         </div>
                         <button
                           onClick={() => handleAddToCart(product)}
@@ -345,9 +389,9 @@ const ProductsPage: React.FC = () => {
                         </button>
                       </div>
                       
-                      {product.inStock < 10 && (
+                      {product.totalStock < 10 && (
                         <p className="text-xs text-warning-600 mt-2">
-                          Only {product.inStock} left in stock
+                          Only {product.totalStock} left in stock
                         </p>
                       )}
                     </div>

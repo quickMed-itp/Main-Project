@@ -10,7 +10,7 @@ const signToken = (id) => {
 
 exports.signup = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role, doctorId, pharmacyRegNumber, address, phone } = req.body;
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -19,7 +19,24 @@ exports.signup = async (req, res, next) => {
       });
     }
 
-    const newUser = await User.create({ name, email, password });
+    // Validate required fields for doctor/pharmacy
+    if (role === 'doctor' && !doctorId) {
+      return res.status(400).json({ status: 'fail', message: 'Doctor ID is required for doctor registration' });
+    }
+    if (role === 'pharmacy' && (!pharmacyRegNumber || !address)) {
+      return res.status(400).json({ status: 'fail', message: 'Pharmacy registration number and address are required for pharmacy registration' });
+    }
+
+    const newUser = await User.create({
+      name,
+      email,
+      password,
+      role: role || 'user',
+      doctorId: role === 'doctor' ? doctorId : undefined,
+      pharmacyRegNumber: role === 'pharmacy' ? pharmacyRegNumber : undefined,
+      address: address || undefined,
+      phone: phone || undefined
+    });
     const token = signToken(newUser._id);
 
     res.status(201).json({
@@ -30,7 +47,11 @@ exports.signup = async (req, res, next) => {
           id: newUser._id,
           name: newUser.name,
           email: newUser.email,
-          role: newUser.role
+          role: newUser.role,
+          doctorId: newUser.doctorId,
+          pharmacyRegNumber: newUser.pharmacyRegNumber,
+          address: newUser.address,
+          phone: newUser.phone
         }
       }
     });
@@ -83,6 +104,49 @@ exports.login = async (req, res, next) => {
   }
 };
 
+exports.verifyToken = async (req, res) => {
+  try {
+    // Get token from header
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({
+        status: 'fail',
+        message: 'No token provided'
+      });
+    }
+
+    // Verify token
+    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+    
+    // Check if user still exists
+    const currentUser = await User.findById(decoded.id);
+    if (!currentUser) {
+      return res.status(401).json({
+        status: 'fail',
+        message: 'User no longer exists'
+      });
+    }
+
+    // If everything is OK
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        valid: true,
+        user: {
+          id: currentUser._id,
+          name: currentUser.name,
+          email: currentUser.email,
+          role: currentUser.role
+        }
+      }
+    });
+  } catch (err) {
+    return res.status(401).json({
+      status: 'fail',
+      message: 'Invalid token'
+    });
+  }
+};
 exports.protect = async (req, res, next) => {
   try {
     let token;
@@ -127,3 +191,4 @@ exports.restrictTo = (...roles) => {
     next();
   };
 };
+

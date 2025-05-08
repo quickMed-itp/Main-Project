@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ShoppingCart, User, Menu, X, Pill, Search } from 'lucide-react';
 import { useAuth } from '../../contexts/useAuth';
 import { useCart } from '../../contexts/CartContext';
 
 const Header: React.FC = () => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const auth = useAuth();
   const { totalItems } = useCart();
-  const navigate = useNavigate();
   const location = useLocation();
   
   const [isOpen, setIsOpen] = useState(false);
@@ -35,9 +34,16 @@ const Header: React.FC = () => {
   }, [location]);
   
   const handleLogout = () => {
-    logout();
-    navigate('/');
+    setDropdownOpen(false);
+    auth.logout();
   };
+
+  // Early return if auth is not available
+  if (!auth) {
+    return null;
+  }
+
+  const { isAuthenticated, user } = auth;
   
   return (
     <header 

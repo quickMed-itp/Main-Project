@@ -76,7 +76,7 @@ const SignUpPage: React.FC = () => {
     setIsLoading(true);
     try {
       await register(formData.name, formData.email, formData.password);
-      navigate('/');
+      navigate('/signin');
     } catch (error) {
       setErrors({
         general: error instanceof Error ? error.message : 'Registration failed'

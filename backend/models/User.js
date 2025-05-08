@@ -19,15 +19,20 @@ const userSchema = new mongoose.Schema({
     type: String
   },
   address: {
-    street: String,
-    city: String,
-    state: String,
-    zipCode: String
+    type: String
   },
   role: {
     type: String,
-    enum: ['user', 'admin'],
+    enum: ['user', 'pharmacy', 'doctor', 'admin'],
     default: 'user'
+  },
+  doctorId: {
+    type: String,
+    required: function() { return this.role === 'doctor'; }
+  },
+  pharmacyRegNumber: {
+    type: String,
+    required: function() { return this.role === 'pharmacy'; }
   },
   createdAt: {
     type: Date,
