@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { Search, Filter } from 'lucide-react';
@@ -24,20 +24,20 @@ const DoctorOrders: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  useEffect(() => {
-    const fetchPrescriptions = async () => {
-      try {
-        const response = await axios.get('/doctor/prescriptions');
-        setPrescriptions(response.data.data);
-      } catch (error) {
-        console.error('Error fetching prescriptions:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPrescriptions();
+  const fetchPrescriptions = useCallback(async () => {
+    try {
+      const response = await axios.get('/doctor/prescriptions');
+      setPrescriptions(response.data.data);
+    } catch (error) {
+      console.error('Error fetching prescriptions:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchPrescriptions();
+  }, [fetchPrescriptions]);
 
   const filteredPrescriptions = prescriptions.filter(prescription => {
     const matchesSearch = 

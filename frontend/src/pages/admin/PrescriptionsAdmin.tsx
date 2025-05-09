@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -41,7 +41,7 @@ const PrescriptionsAdmin = () => {
   }, [isAuthenticated, isAdmin, navigate, logout]);
 
   // Fetch prescriptions
-  const fetchPrescriptions = async () => {
+  const fetchPrescriptions = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -52,7 +52,13 @@ const PrescriptionsAdmin = () => {
         }
       });
       console.log(response.data.data.prescriptions);
-      setPrescriptions(response.data.data.prescriptions);
+      const fetchedPrescriptions = response.data.data.prescriptions.map(
+        (prescription: Prescription) => ({
+          ...prescription,
+          filePath: prescription.filePath.split('/').pop() || ''
+        })
+      );
+      setPrescriptions(fetchedPrescriptions);
     } catch (error) {
       console.error('Error fetching prescriptions:', error);
       if (axios.isAxiosError(error)) {
@@ -65,13 +71,13 @@ const PrescriptionsAdmin = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [logout, navigate]);
 
   useEffect(() => {
     if (isAuthenticated && isAdmin) {
       fetchPrescriptions();
     }
-  }, [isAuthenticated, isAdmin]);
+  }, [isAuthenticated, isAdmin, fetchPrescriptions]);
 
   // Handle prescription status update
   const handleStatusUpdate = async (prescriptionId: string, status: 'approved' | 'rejected', notes?: string) => {
@@ -140,12 +146,12 @@ const PrescriptionsAdmin = () => {
                     <td className="px-4 py-3">
                       {new Date(prescription.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
-                        Pending
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
+                  <td className="px-4 py-3">
+                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
+                      Pending
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
                       <button 
                         onClick={() => {
                           setSelectedPrescription(prescription);
@@ -153,10 +159,10 @@ const PrescriptionsAdmin = () => {
                         }}
                         className="text-blue-600 hover:text-blue-800"
                       >
-                        View
-                      </button>
-                    </td>
-                  </tr>
+                      View
+                    </button>
+                  </td>
+                </tr>
                 ))}
               </tbody>
             </table>
@@ -186,16 +192,16 @@ const PrescriptionsAdmin = () => {
                     <td className="px-4 py-3">
                       {new Date(prescription.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-3">
+                  <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded-full text-sm ${
                         prescription.status === 'approved' 
                           ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
                       }`}>
                         {prescription.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
                       <button 
                         onClick={() => {
                           setSelectedPrescription(prescription);
@@ -203,10 +209,10 @@ const PrescriptionsAdmin = () => {
                         }}
                         className="text-blue-600 hover:text-blue-800"
                       >
-                        View
-                      </button>
-                    </td>
-                  </tr>
+                      View
+                    </button>
+                  </td>
+                </tr>
                 ))}
               </tbody>
             </table>
@@ -237,7 +243,7 @@ const PrescriptionsAdmin = () => {
                 <h3 className="font-medium text-gray-700">Prescription Image</h3>
                 <div className="mt-2 max-h-[50vh] overflow-y-auto border rounded-lg">
                   <img 
-                    src={`http://localhost:5000/${selectedPrescription.filePath.split('/').pop()}`}
+                    src={`http://localhost:5000/${selectedPrescription.filePath}`}
                     alt="Prescription"
                     className="w-full h-auto object-contain"
                   />
