@@ -1,46 +1,59 @@
 import React, { useState, useRef } from 'react';
-import { Upload, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Upload, AlertCircle, CheckCircle2, X } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+const MAX_FILES = 3;
 
 const UploadPrescriptionPage = () => {
   const navigate = useNavigate();
   const [patientName, setPatientName] = useState('');
   const [patientAge, setPatientAge] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     setError(null);
 
-    if (file) {
+    if (files.length > MAX_FILES) {
+      setError(`You can only upload up to ${MAX_FILES} files`);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    const validFiles = files.filter(file => {
       if (file.size > MAX_FILE_SIZE) {
-        setError('File size exceeds 5MB limit');
-        setSelectedFile(null);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-        return;
+        setError('One or more files exceed 5MB limit');
+        return false;
       }
 
       const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
       if (!validTypes.includes(file.type)) {
         setError('Invalid file type. Please upload JPG, PNG, or PDF');
-        setSelectedFile(null);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-        return;
+        return false;
       }
 
-      setSelectedFile(file);
+      return true;
+    });
+
+    if (validFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...validFiles].slice(0, MAX_FILES));
     }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -53,20 +66,30 @@ const UploadPrescriptionPage = () => {
     e.stopPropagation();
     setError(null);
 
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
+    const files = Array.from(e.dataTransfer.files);
+    
+    if (files.length > MAX_FILES) {
+      setError(`You can only upload up to ${MAX_FILES} files`);
+      return;
+    }
+
+    const validFiles = files.filter(file => {
       if (file.size > MAX_FILE_SIZE) {
-        setError('File size exceeds 5MB limit');
-        return;
+        setError('One or more files exceed 5MB limit');
+        return false;
       }
 
       const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
       if (!validTypes.includes(file.type)) {
         setError('Invalid file type. Please upload JPG, PNG, or PDF');
-        return;
+        return false;
       }
 
-      setSelectedFile(file);
+      return true;
+    });
+
+    if (validFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...validFiles].slice(0, MAX_FILES));
     }
   };
 
@@ -80,8 +103,8 @@ const UploadPrescriptionPage = () => {
       return;
     }
 
-    if (!selectedFile) {
-      setError('Please select a prescription file');
+    if (selectedFiles.length === 0) {
+      setError('Please select at least one prescription file');
       return;
     }
 
@@ -89,7 +112,9 @@ const UploadPrescriptionPage = () => {
 
     try {
       const formData = new FormData();
-      formData.append('prescription', selectedFile);
+      selectedFiles.forEach((file) => {
+        formData.append('prescription', file);
+      });
       formData.append('patientName', patientName);
       formData.append('patientAge', patientAge);
 
@@ -97,24 +122,24 @@ const UploadPrescriptionPage = () => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        withCredentials: true // This is important for sending cookies
+        withCredentials: true
       });
 
       if (response.data.status === 'success') {
-        setSuccess('Prescription uploaded successfully!');
+        setSuccess('Prescriptions uploaded successfully!');
         setTimeout(() => {
           navigate('/profile');
         }, 2000);
       } else {
-        setError(response.data.message || 'Failed to upload prescription');
+        setError(response.data.message || 'Failed to upload prescriptions');
       }
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const errorMessage = err.response?.data?.message || err.message;
-        setError(`Failed to upload prescription: ${errorMessage}`);
+        setError(`Failed to upload prescriptions: ${errorMessage}`);
         console.error('Upload error:', err.response?.data);
       } else {
-        setError('An unexpected error occurred while uploading the prescription');
+        setError('An unexpected error occurred while uploading the prescriptions');
         console.error('Unexpected error:', err);
       }
     } finally {
@@ -186,15 +211,15 @@ const UploadPrescriptionPage = () => {
           {/* File Upload Section */}
           <div 
             className={`border-2 border-dashed rounded-lg p-8 text-center ${
-              selectedFile ? 'border-green-500 bg-green-50' : 'border-gray-300'
+              selectedFiles.length > 0 ? 'border-green-500 bg-green-50' : 'border-gray-300'
             }`}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
           >
             <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Upload your prescription</h3>
+            <h3 className="text-xl font-semibold mb-2">Upload your prescriptions</h3>
             <p className="text-gray-500 mb-4">
-              Drag and drop your prescription file here, or click to select a file
+              Drag and drop your prescription files here, or click to select files (up to 3)
             </p>
             <input
               type="file"
@@ -203,27 +228,43 @@ const UploadPrescriptionPage = () => {
               accept=".jpg,.jpeg,.png,.pdf"
               onChange={handleFileChange}
               ref={fileInputRef}
+              multiple
             />
             <label
               htmlFor="prescription-upload"
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer"
             >
-              Choose File
+              Choose Files
             </label>
-            {selectedFile && (
-              <p className="mt-2 text-sm text-green-600">
-                Selected file: {selectedFile.name}
-              </p>
+            
+            {/* Selected Files Preview */}
+            {selectedFiles.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {selectedFiles.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between bg-white p-2 rounded border">
+                    <span className="text-sm text-gray-600 truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
+            
             <p className="text-sm text-gray-400 mt-2">
-              Supported formats: JPG, PNG, PDF (Max size: 5MB)
+              Supported formats: JPG, PNG, PDF (Max size: 5MB per file)
             </p>
           </div>
 
           <div className="mt-8">
             <h4 className="font-semibold mb-4">Important Notes:</h4>
             <ul className="list-disc list-inside text-gray-600 space-y-2">
-              <li>Ensure the prescription is clearly visible and readable</li>
+              <li>You can upload up to 3 prescription images</li>
+              <li>Ensure the prescriptions are clearly visible and readable</li>
               <li>Include all pages of the prescription</li>
               <li>Make sure the doctor's signature is visible</li>
               <li>Prescriptions must be valid and not expired</li>
@@ -240,7 +281,7 @@ const UploadPrescriptionPage = () => {
                   : 'bg-blue-600 hover:bg-blue-700'
               }`}
             >
-              {isUploading ? 'Uploading...' : 'Upload Prescription'}
+              {isUploading ? 'Uploading...' : 'Upload Prescriptions'}
             </button>
           </div>
         </form>

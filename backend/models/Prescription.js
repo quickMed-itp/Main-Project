@@ -14,10 +14,10 @@ const prescriptionSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  filePath: {
+  filePaths: [{
     type: String,
     required: true
-  },
+  }],
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],

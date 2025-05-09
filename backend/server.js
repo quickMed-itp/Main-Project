@@ -6,6 +6,7 @@ const PORT = process.env.PORT || 3000;
 
 const server = http.createServer(app);
 
+
 // Connect to MongoDB before starting the server
 const startServer = async () => {
   try {

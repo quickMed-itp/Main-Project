@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { Trash2 } from 'lucide-react';
 
 interface Prescription {
   _id: string;
   patientName: string;
   patientAge: number;
-  filePath: string;
+  filePaths: string[];
+  fileUrls?: string[];
   status: 'pending' | 'approved' | 'rejected';
   notes?: string;
   createdAt: string;
@@ -22,6 +24,8 @@ const PrescriptionsAdmin = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [prescriptionToDelete, setPrescriptionToDelete] = useState<Prescription | null>(null);
 
   // Get auth token
   const getAuthToken = () => {
@@ -52,12 +56,7 @@ const PrescriptionsAdmin = () => {
         }
       });
       console.log(response.data.data.prescriptions);
-      const fetchedPrescriptions = response.data.data.prescriptions.map(
-        (prescription: Prescription) => ({
-          ...prescription,
-          filePath: prescription.filePath.split('/').pop() || ''
-        })
-      );
+      const fetchedPrescriptions = response.data.data.prescriptions;
       setPrescriptions(fetchedPrescriptions);
     } catch (error) {
       console.error('Error fetching prescriptions:', error);
@@ -98,6 +97,31 @@ const PrescriptionsAdmin = () => {
       console.error('Error updating prescription status:', error);
       if (axios.isAxiosError(error)) {
         setError(error.response?.data?.message || 'Error updating prescription status');
+      }
+    }
+  };
+
+  // Handle prescription deletion
+  const handleDelete = async (prescriptionId: string) => {
+    try {
+      setError(null);
+      const token = getAuthToken();
+      await axios.delete(
+        `http://localhost:5000/api/v1/prescriptions/${prescriptionId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      // Remove the deleted prescription from the state
+      setPrescriptions(prescriptions.filter(p => p._id !== prescriptionId));
+      setIsDeleteModalOpen(false);
+      setPrescriptionToDelete(null);
+    } catch (error) {
+      console.error('Error deleting prescription:', error);
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || 'Error deleting prescription');
       }
     }
   };
@@ -146,23 +170,34 @@ const PrescriptionsAdmin = () => {
                     <td className="px-4 py-3">
                       {new Date(prescription.createdAt).toLocaleDateString()}
                     </td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
-                      Pending
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                      <button 
-                        onClick={() => {
-                          setSelectedPrescription(prescription);
-                          setIsViewModalOpen(true);
-                        }}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                      View
-                    </button>
-                  </td>
-                </tr>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
+                        Pending
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center space-x-3">
+                        <button 
+                          onClick={() => {
+                            setSelectedPrescription(prescription);
+                            setIsViewModalOpen(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          View ({prescription.filePaths.length} files)
+                        </button>
+                        <button
+                          onClick={() => {
+                            setPrescriptionToDelete(prescription);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -192,27 +227,38 @@ const PrescriptionsAdmin = () => {
                     <td className="px-4 py-3">
                       {new Date(prescription.createdAt).toLocaleDateString()}
                     </td>
-                  <td className="px-4 py-3">
+                    <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded-full text-sm ${
                         prescription.status === 'approved' 
                           ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
                       }`}>
                         {prescription.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                      <button 
-                        onClick={() => {
-                          setSelectedPrescription(prescription);
-                          setIsViewModalOpen(true);
-                        }}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                      View
-                    </button>
-                  </td>
-                </tr>
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center space-x-3">
+                        <button 
+                          onClick={() => {
+                            setSelectedPrescription(prescription);
+                            setIsViewModalOpen(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          View ({prescription.filePaths.length} files)
+                        </button>
+                        <button
+                          onClick={() => {
+                            setPrescriptionToDelete(prescription);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -223,8 +269,8 @@ const PrescriptionsAdmin = () => {
       {/* View Prescription Modal */}
       {isViewModalOpen && selectedPrescription && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center pt-15 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
-            <div className="flex justify-between items-center mb-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4 sticky top-0 bg-white z-10 pb-4">
               <h2 className="text-xl font-semibold">Prescription Details</h2>
               <button 
                 onClick={() => setIsViewModalOpen(false)}
@@ -240,13 +286,28 @@ const PrescriptionsAdmin = () => {
                 <p>Age: {selectedPrescription.patientAge}</p>
               </div>
               <div>
-                <h3 className="font-medium text-gray-700">Prescription Image</h3>
-                <div className="mt-2 max-h-[50vh] overflow-y-auto border rounded-lg">
-                  <img 
-                    src={`http://localhost:5000/${selectedPrescription.filePath}`}
-                    alt="Prescription"
-                    className="w-full h-auto object-contain"
-                  />
+                <h3 className="font-medium text-gray-700">Prescription Images</h3>
+                <div className="mt-2 space-y-4">
+                  {selectedPrescription.fileUrls?.map((fileUrl, index) => (
+                    <div key={index} className="border rounded-lg p-2">
+                      <div className="max-h-[60vh] overflow-y-auto">
+                        {fileUrl.toLowerCase().endsWith('.pdf') ? (
+                          <iframe
+                            src={`http://localhost:5000${fileUrl}`}
+                            className="w-full h-[60vh]"
+                            title={`Prescription ${index + 1}`}
+                          />
+                        ) : (
+                          <img 
+                            src={`http://localhost:5000${fileUrl}`}
+                            alt={`Prescription ${index + 1}`}
+                            className="w-full h-auto object-contain"
+                          />
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">File {index + 1}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
               {selectedPrescription.notes && (
@@ -268,7 +329,7 @@ const PrescriptionsAdmin = () => {
                 </span>
               </div>
               {selectedPrescription.status === 'pending' && (
-                <div className="flex justify-center space-x-4 pt-4 border-t">
+                <div className="flex justify-center space-x-4 pt-4 border-t sticky bottom-0 bg-white z-10">
                   <button
                     onClick={() => {
                       handleStatusUpdate(selectedPrescription._id, 'rejected');
@@ -289,6 +350,36 @@ const PrescriptionsAdmin = () => {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && prescriptionToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-semibold mb-4">Confirm Delete</h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete the prescription for patient <span className="font-semibold">{prescriptionToDelete.patientName}</span>?
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setPrescriptionToDelete(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(prescriptionToDelete._id)}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>

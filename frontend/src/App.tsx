@@ -123,7 +123,8 @@ function App() {
           <AdminLayout />
         </ProtectedRoute>
       }>
-        <Route index element={<AdminDashboard />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="prescriptions" element={<PrescriptionsAdmin />} />
         <Route path="products" element={<ProductsAdmin />} />
         <Route path="medicines" element={<MedicinesAdmin />} />
@@ -140,7 +141,6 @@ function App() {
 
         <Route path="suppliers" element={<SuppliersAdmin />} />
         <Route path="reports" element={<ReportsAdmin />} />
-
       </Route>
 
       {/* Payment Route */}
