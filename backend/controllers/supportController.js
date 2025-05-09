@@ -116,21 +116,35 @@ exports.deleteTicket = async (req, res) => {
 // Update ticket status
 exports.updateStatus = async (req, res) => {
   try {
-    const { status, reply } = req.body;
+    const { status } = req.body;
+    
+    // Validate status
+    if (!['pending', 'resolved', 'rejected'].includes(status)) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'Invalid status. Must be either pending, resolved, or rejected'
+      });
+    }
+
     const ticket = await Support.findByIdAndUpdate(
       req.params.id,
-      { status, reply },
+      { 
+        status,
+        updatedAt: Date.now()
+      },
       {
         new: true,
         runValidators: true
       }
     );
+
     if (!ticket) {
       return res.status(404).json({
         status: 'fail',
         message: 'No ticket found with that ID'
       });
     }
+
     res.status(200).json({
       status: 'success',
       data: {
@@ -138,9 +152,10 @@ exports.updateStatus = async (req, res) => {
       }
     });
   } catch (err) {
+    console.error('Error updating ticket status:', err);
     res.status(400).json({
       status: 'fail',
-      message: err.message
+      message: err.message || 'Error updating ticket status'
     });
   }
 }; 
