@@ -1,15 +1,27 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Trash2, Search, Filter, ArrowUpDown, Download, Clock, CheckCircle, XCircle, FileText, TrendingUp, Users } from 'lucide-react';
 
+import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
+import { useAuth } from '../../contexts/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { Trash2 } from 'lucide-react';
+
+
 interface Prescription {
   _id: string;
   patientName: string;
   patientAge: number;
   filePaths: string[];
+
   fileUrl?: string;
+
+  fileUrls?: string[];
+
   status: 'pending' | 'approved' | 'rejected';
   notes?: string;
   createdAt: string;
@@ -26,6 +38,7 @@ const PrescriptionsAdmin = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [prescriptionToDelete, setPrescriptionToDelete] = useState<Prescription | null>(null);
+
   
   // New state for search and filter
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,6 +58,7 @@ const PrescriptionsAdmin = () => {
     recentActivity: [] as { type: string; count: number; date: string }[]
   });
 
+
   // Get auth token
   const getAuthToken = () => {
     const token = localStorage.getItem('pharmacy_token');
@@ -63,7 +77,7 @@ const PrescriptionsAdmin = () => {
   }, [isAuthenticated, isAdmin, navigate, logout]);
 
   // Fetch prescriptions
-  const fetchPrescriptions = async () => {
+  const fetchPrescriptions = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -74,7 +88,8 @@ const PrescriptionsAdmin = () => {
         }
       });
       console.log(response.data.data.prescriptions);
-      setPrescriptions(response.data.data.prescriptions);
+      const fetchedPrescriptions = response.data.data.prescriptions;
+      setPrescriptions(fetchedPrescriptions);
     } catch (error) {
       console.error('Error fetching prescriptions:', error);
       if (axios.isAxiosError(error)) {
@@ -87,13 +102,13 @@ const PrescriptionsAdmin = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [logout, navigate]);
 
   useEffect(() => {
     if (isAuthenticated && isAdmin) {
       fetchPrescriptions();
     }
-  }, [isAuthenticated, isAdmin]);
+  }, [isAuthenticated, isAdmin, fetchPrescriptions]);
 
   // Handle prescription status update
   const handleStatusUpdate = async (prescriptionId: string, status: 'approved' | 'rejected', notes?: string) => {
@@ -117,6 +132,7 @@ const PrescriptionsAdmin = () => {
       }
     }
   };
+
 
   // New function to handle search and filtering
   const getFilteredPrescriptions = useCallback(() => {
@@ -244,6 +260,36 @@ const PrescriptionsAdmin = () => {
   const filteredPrescriptions = getFilteredPrescriptions();
   const pendingPrescriptions = filteredPrescriptions.filter(p => p.status === 'pending');
   const historyPrescriptions = filteredPrescriptions.filter(p => p.status !== 'pending');
+
+  // Handle prescription deletion
+  const handleDelete = async (prescriptionId: string) => {
+    try {
+      setError(null);
+      const token = getAuthToken();
+      await axios.delete(
+        `http://localhost:5000/api/v1/prescriptions/${prescriptionId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      // Remove the deleted prescription from the state
+      setPrescriptions(prescriptions.filter(p => p._id !== prescriptionId));
+      setIsDeleteModalOpen(false);
+      setPrescriptionToDelete(null);
+    } catch (error) {
+      console.error('Error deleting prescription:', error);
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || 'Error deleting prescription');
+      }
+    }
+  };
+
+  // Filter prescriptions
+  const pendingPrescriptions = prescriptions.filter(p => p.status === 'pending');
+  const historyPrescriptions = prescriptions.filter(p => p.status !== 'pending');
+
 
   return (
     <div className="p-6 bg-gradient-to-br from-violet-50 via-fuchsia-50 to-pink-50 min-h-screen">
@@ -453,15 +499,26 @@ const PrescriptionsAdmin = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <button 
-                        onClick={() => {
-                          setSelectedPrescription(prescription);
-                          setIsViewModalOpen(true);
-                        }}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        View
-                      </button>
+                      <div className="flex items-center space-x-3">
+                        <button 
+                          onClick={() => {
+                            setSelectedPrescription(prescription);
+                            setIsViewModalOpen(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          View ({prescription.filePaths.length} files)
+                        </button>
+                        <button
+                          onClick={() => {
+                            setPrescriptionToDelete(prescription);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -503,15 +560,26 @@ const PrescriptionsAdmin = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <button 
-                        onClick={() => {
-                          setSelectedPrescription(prescription);
-                          setIsViewModalOpen(true);
-                        }}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        View
-                      </button>
+                      <div className="flex items-center space-x-3">
+                        <button 
+                          onClick={() => {
+                            setSelectedPrescription(prescription);
+                            setIsViewModalOpen(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          View ({prescription.filePaths.length} files)
+                        </button>
+                        <button
+                          onClick={() => {
+                            setPrescriptionToDelete(prescription);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -524,8 +592,8 @@ const PrescriptionsAdmin = () => {
       {/* View Prescription Modal */}
       {isViewModalOpen && selectedPrescription && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center pt-15 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
-            <div className="flex justify-between items-center mb-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4 sticky top-0 bg-white z-10 pb-4">
               <h2 className="text-xl font-semibold">Prescription Details</h2>
               <button 
                 onClick={() => setIsViewModalOpen(false)}
@@ -543,6 +611,7 @@ const PrescriptionsAdmin = () => {
               <div>
                 <h3 className="font-medium text-gray-700">Prescription Images</h3>
                 <div className="mt-2 space-y-4">
+
                   {selectedPrescription.fileUrls && selectedPrescription.fileUrls.length > 0 ? (
                     selectedPrescription.fileUrls.map((fileUrl, index) => (
                       <div key={index} className="border rounded-lg p-2">
@@ -561,6 +630,28 @@ const PrescriptionsAdmin = () => {
                       No prescription images available
                     </div>
                   )}
+
+                  {selectedPrescription.fileUrls?.map((fileUrl, index) => (
+                    <div key={index} className="border rounded-lg p-2">
+                      <div className="max-h-[60vh] overflow-y-auto">
+                        {fileUrl.toLowerCase().endsWith('.pdf') ? (
+                          <iframe
+                            src={`http://localhost:5000${fileUrl}`}
+                            className="w-full h-[60vh]"
+                            title={`Prescription ${index + 1}`}
+                          />
+                        ) : (
+                          <img 
+                            src={`http://localhost:5000${fileUrl}`}
+                            alt={`Prescription ${index + 1}`}
+                            className="w-full h-auto object-contain"
+                          />
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">File {index + 1}</p>
+                    </div>
+                  ))}
+
                 </div>
               </div>
               {selectedPrescription.notes && (
@@ -582,7 +673,7 @@ const PrescriptionsAdmin = () => {
                 </span>
               </div>
               {selectedPrescription.status === 'pending' && (
-                <div className="flex justify-center space-x-4 pt-4 border-t">
+                <div className="flex justify-center space-x-4 pt-4 border-t sticky bottom-0 bg-white z-10">
                   <button
                     onClick={() => {
                       handleStatusUpdate(selectedPrescription._id, 'rejected');
@@ -607,6 +698,7 @@ const PrescriptionsAdmin = () => {
           </div>
         </div>
       )}
+
 
       {/* Filter Modal */}
       {isFilterModalOpen && (
@@ -652,6 +744,33 @@ const PrescriptionsAdmin = () => {
                   Apply Filters
                 </button>
               </div>
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && prescriptionToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-semibold mb-4">Confirm Delete</h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete the prescription for patient <span className="font-semibold">{prescriptionToDelete.patientName}</span>?
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setPrescriptionToDelete(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(prescriptionToDelete._id)}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Delete
+              </button>
+
             </div>
           </div>
         </div>

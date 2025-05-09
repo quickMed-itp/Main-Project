@@ -32,10 +32,22 @@ const userSchema = new mongoose.Schema({
       message: 'Age must be a whole number'
     }
   },
-  address: {
-    type: String,
-    trim: true
-  },
+  addresses: [{
+    label: {
+      type: String,
+      required: [true, 'Address label is required'],
+      trim: true
+    },
+    address: {
+      type: String,
+      required: [true, 'Address is required'],
+      trim: true
+    },
+    isDefault: {
+      type: Boolean,
+      default: false
+    }
+  }],
   role: {
     type: String,
     enum: ['user', 'pharmacy', 'doctor', 'admin'],
@@ -61,7 +73,8 @@ const userSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  passwordChangedAt: Date
 });
 
 userSchema.pre('save', async function (next) {
@@ -77,6 +90,17 @@ userSchema.pre('save', function(next) {
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const changedTimestamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+    return JWTTimestamp < changedTimestamp;
+  }
+  return false;
 };
 
 module.exports = mongoose.model('User', userSchema);

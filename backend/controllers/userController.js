@@ -157,6 +157,178 @@ exports.updateUserStatus = async (req, res, next) => {
   }
 };
 
+// Get current user's addresses
+exports.getMyAddresses = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id).select('addresses');
+    
+    const fetchedAddresses = (user.addresses || []).map((addr, idx) => {
+      // Try to use existing fields, or fallback to parsing the address string if needed
+      return {
+        id: addr._id || idx.toString(),
+        label: addr.label || `Address ${idx + 1}`,
+        address: addr.address || ''
+      };
+    });
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        addresses: fetchedAddresses
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Add new address for current user
+exports.addAddress = async (req, res, next) => {
+  try {
+    const { label, address } = req.body;
+
+    if (!label || !address) {
+      return next(new AppError('Label and address are required', 400));
+    }
+
+    const user = await User.findById(req.user._id);
+    
+    
+
+    // Add the new address
+    user.addresses.push({
+      label,
+      address,
+      isDefault: false
+    });
+
+    await user.save();
+
+    res.status(201).json({
+      status: 'success',
+      data: {
+        addresses: user.addresses
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Update an address
+exports.updateAddress = async (req, res, next) => {
+  try {
+    const { label, address, isDefault } = req.body;
+    const addressId = req.params.addressId;
+
+    if (!label || !address) {
+      return next(new AppError('Label and address are required', 400));
+    }
+
+    const user = await User.findById(req.user._id);
+    const addressIndex = user.addresses.findIndex(addr => addr._id.toString() === addressId);
+
+    if (addressIndex === -1) {
+      return next(new AppError('Address not found', 404));
+    }
+
+    // If setting as default, unset any existing default
+    if (isDefault) {
+      user.addresses.forEach(addr => {
+        addr.isDefault = false;
+      });
+    }
+
+    // Update the address
+    user.addresses[addressIndex] = {
+      ...user.addresses[addressIndex],
+      label,
+      address,
+      isDefault: isDefault || user.addresses[addressIndex].isDefault
+    };
+
+    await user.save();
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        addresses: user.addresses
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Delete an address
+exports.deleteAddress = async (req, res, next) => {
+  try {
+    const addressId = req.params.addressId;
+    const user = await User.findById(req.user._id);
+    
+    const addressIndex = user.addresses.findIndex(addr => addr._id.toString() === addressId);
+
+    if (addressIndex === -1) {
+      return next(new AppError('Address not found', 404));
+    }
+
+    const wasDefault = user.addresses[addressIndex].isDefault;
+
+    // Remove the address
+    user.addresses.splice(addressIndex, 1);
+
+    // If we deleted the default address and there are other addresses,
+    // set the first remaining address as default
+    if (wasDefault && user.addresses.length > 0) {
+      user.addresses[0].isDefault = true;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        addresses: user.addresses
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Set default address
+exports.setDefaultAddress = async (req, res, next) => {
+  try {
+    const addressId = req.params.addressId;
+    const user = await User.findById(req.user._id);
+    
+    const addressIndex = user.addresses.findIndex(addr => addr._id.toString() === addressId);
+
+    if (addressIndex === -1) {
+      return next(new AppError('Address not found', 404));
+    }
+
+    // Unset any existing default
+    user.addresses.forEach(addr => {
+      addr.isDefault = false;
+    });
+
+    // Set the new default
+    user.addresses[addressIndex].isDefault = true;
+
+    await user.save();
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        addresses: user.addresses
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Helper function to filter object
 const filterObj = (obj, ...allowedFields) => {
   const newObj = {};

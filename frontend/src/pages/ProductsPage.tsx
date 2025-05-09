@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Filter, Search, X, ShoppingCart, Heart, ArrowUpDown } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/useAuth';
 
 interface Product {
   _id: string;
@@ -18,7 +19,9 @@ interface Product {
 }
 
 const ProductsPage: React.FC = () => {
-  const { addToCart } = useCart();
+  const { addToCart, error: cartError } = useCart();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -99,17 +102,30 @@ const ProductsPage: React.FC = () => {
     setFilteredProducts(result);
   }, [products, activeCategory, searchQuery, sortOption, priceRange]);
   
-  const handleAddToCart = (product: Product) => {
-    addToCart({
+  const handleAddToCart = async (product: Product) => {
+    if (!isAuthenticated) {
+      navigate('/signin');
+      return;
+    }
+
+    try {
+      await addToCart({
       productId: product._id,
       name: product.name,
       price: product.price,
-      image: `http://localhost:5000/uploads/${product.mainImage}`,
-      quantity: 1,
+        image: product.mainImage,
+        quantity: 1
     });
     
+      // Show success toast message
     if (window.showToast) {
       window.showToast.success(`Added ${product.name} to cart`);
+      }
+    } catch (err) {
+      console.error('Failed to add to cart:', err);
+      if (window.showToast) {
+        window.showToast.error('Failed to add item to cart');
+      }
     }
   };
   
@@ -412,6 +428,12 @@ const ProductsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {cartError && (
+        <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          {cartError}
+        </div>
+      )}
     </div>
   );
 };

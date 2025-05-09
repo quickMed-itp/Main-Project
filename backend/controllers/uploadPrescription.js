@@ -11,18 +11,25 @@ const deleteFile = async (filePath) => {
   }
 };
 
+// Helper function to delete multiple files
+const deleteFiles = async (filePaths) => {
+  if (!filePaths) return;
+  const paths = Array.isArray(filePaths) ? filePaths : [filePaths];
+  await Promise.all(paths.map(path => deleteFile(path)));
+};
+
 exports.uploadPrescription = async (req, res) => {
   try {
-    if (!req.file) {
+    if (!req.files || req.files.length === 0) {
       return res.status(400).json({
         status: 'fail',
-        message: 'Please upload a file'
+        message: 'Please upload at least one file'
       });
     }
 
     if (!req.body.patientName || !req.body.patientAge) {
-      // Delete uploaded file if validation fails
-      await deleteFile(req.file.path);
+      // Delete uploaded files if validation fails
+      await deleteFiles(req.files.map(file => file.path));
       return res.status(400).json({
         status: 'fail',
         message: 'Patient name and age are required'
@@ -33,7 +40,11 @@ exports.uploadPrescription = async (req, res) => {
       userId: req.user._id,
       patientName: req.body.patientName,
       patientAge: req.body.patientAge,
+
       filePaths: [req.file.path],
+
+      filePaths: req.files.map(file => file.path),
+
       notes: req.body.notes
     });
     
@@ -44,9 +55,9 @@ exports.uploadPrescription = async (req, res) => {
       }
     });
   } catch (err) {
-    // Delete uploaded file if database operation fails
-    if (req.file) {
-      await deleteFile(req.file.path);
+    // Delete uploaded files if database operation fails
+    if (req.files) {
+      await deleteFiles(req.files.map(file => file.path));
     }
     res.status(400).json({
       status: 'fail',
@@ -77,9 +88,10 @@ exports.getUserPrescriptions = async (req, res) => {
       }
     });
   } catch (err) {
+    console.error('Error fetching prescriptions:', err);
     res.status(400).json({
       status: 'fail',
-      message: err.message
+      message: err.message || 'Error fetching prescriptions'
     });
   }
 };
@@ -125,8 +137,8 @@ exports.updatePrescription = async (req, res) => {
     });
 
     if (!prescription) {
-      if (req.file) {
-        await deleteFile(req.file.path);
+      if (req.files) {
+        await deleteFiles(req.files.map(file => file.path));
       }
       return res.status(404).json({
         status: 'fail',
@@ -140,6 +152,7 @@ exports.updatePrescription = async (req, res) => {
     if (req.body.notes) prescription.notes = req.body.notes;
     if (req.body.status) prescription.status = req.body.status;
 
+
     // Handle file upload if new file is provided
     if (req.file) {
       // Delete old files
@@ -147,6 +160,13 @@ exports.updatePrescription = async (req, res) => {
         await deleteFile(filePath);
       }
       prescription.filePaths = [req.file.path];
+
+    // Handle file upload if new files are provided
+    if (req.files && req.files.length > 0) {
+      // Delete old files
+      await deleteFiles(prescription.filePaths);
+      prescription.filePaths = req.files.map(file => file.path);
+
     }
 
     await prescription.save();
@@ -163,8 +183,8 @@ exports.updatePrescription = async (req, res) => {
       }
     });
   } catch (err) {
-    if (req.file) {
-      await deleteFile(req.file.path);
+    if (req.files) {
+      await deleteFiles(req.files.map(file => file.path));
     }
     res.status(400).json({
       status: 'fail',
@@ -188,9 +208,13 @@ exports.deletePrescription = async (req, res) => {
     }
 
     // Delete all files
+
     for (const filePath of prescription.filePaths) {
       await deleteFile(filePath);
     }
+
+    await deleteFiles(prescription.filePaths);
+
 
     await prescription.deleteOne();
 

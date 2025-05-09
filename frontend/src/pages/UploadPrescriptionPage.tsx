@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { Upload, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Upload, AlertCircle, CheckCircle2, X } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+const MAX_FILES = 3;
 
 const UploadPrescriptionPage = () => {
   const navigate = useNavigate();
@@ -68,22 +69,36 @@ const UploadPrescriptionPage = () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     setError(null);
 
-    if (file) {
+    if (files.length > MAX_FILES) {
+      setError(`You can only upload up to ${MAX_FILES} files`);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    const validFiles = files.filter(file => {
       if (file.size > MAX_FILE_SIZE) {
+
         setError('File size exceeds 5MB limit');
         setSelectedFiles([]);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
         return;
+
+        setError('One or more files exceed 5MB limit');
+        return false;
+
       }
 
       const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
       if (!validTypes.includes(file.type)) {
         setError('Invalid file type. Please upload JPG, PNG, or PDF');
+
         setSelectedFiles([]);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
@@ -92,7 +107,25 @@ const UploadPrescriptionPage = () => {
       }
 
       setSelectedFiles([...selectedFiles, file]);
+
+        return false;
+      }
+
+      return true;
+    });
+
+    if (validFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...validFiles].slice(0, MAX_FILES));
     }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -105,20 +138,34 @@ const UploadPrescriptionPage = () => {
     e.stopPropagation();
     setError(null);
 
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
+    const files = Array.from(e.dataTransfer.files);
+    
+    if (files.length > MAX_FILES) {
+      setError(`You can only upload up to ${MAX_FILES} files`);
+      return;
+    }
+
+    const validFiles = files.filter(file => {
       if (file.size > MAX_FILE_SIZE) {
-        setError('File size exceeds 5MB limit');
-        return;
+        setError('One or more files exceed 5MB limit');
+        return false;
       }
 
       const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
       if (!validTypes.includes(file.type)) {
         setError('Invalid file type. Please upload JPG, PNG, or PDF');
-        return;
+        return false;
       }
 
+
       setSelectedFiles([...selectedFiles, file]);
+
+      return true;
+    });
+
+    if (validFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...validFiles].slice(0, MAX_FILES));
+
     }
   };
 
@@ -135,10 +182,12 @@ const UploadPrescriptionPage = () => {
       return;
     }
 
+
     if (ageError) {
       setError(ageError);
       return;
     }
+
 
     if (selectedFiles.length === 0) {
       setError('Please select at least one prescription file');
@@ -152,7 +201,11 @@ const UploadPrescriptionPage = () => {
       selectedFiles.forEach((file) => {
         formData.append('prescription', file);
       });
+
       formData.append('patientName', patientName.trim());
+
+      formData.append('patientName', patientName);
+
       formData.append('patientAge', patientAge);
 
       const response = await axios.post('http://localhost:5000/api/v1/prescriptions', formData, {
@@ -247,17 +300,28 @@ const UploadPrescriptionPage = () => {
 
           {/* File Upload Section */}
           <div 
+
             className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 ${
               selectedFiles.length > 0 
                 ? 'border-green-500 bg-green-50 hover:bg-green-100' 
                 : 'border-indigo-300 hover:border-indigo-400 hover:bg-indigo-50'
+
+            className={`border-2 border-dashed rounded-lg p-8 text-center ${
+              selectedFiles.length > 0 ? 'border-green-500 bg-green-50' : 'border-gray-300'
+
             }`}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
           >
+
             <Upload className="mx-auto h-16 w-16 text-indigo-400 mb-4" />
             <h3 className="text-2xl font-semibold mb-2 text-indigo-700">Upload your prescriptions</h3>
             <p className="text-indigo-600 mb-4">
+
+            <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Upload your prescriptions</h3>
+            <p className="text-gray-500 mb-4">
+
               Drag and drop your prescription files here, or click to select files (up to 3)
             </p>
             <input
@@ -278,6 +342,7 @@ const UploadPrescriptionPage = () => {
             
             {/* Selected Files Preview */}
             {selectedFiles.length > 0 && (
+
               <div className="mt-6 space-y-3">
                 {selectedFiles.map((file, index) => (
                   <div key={index} className="flex items-center justify-between bg-white p-3 rounded-lg border border-indigo-200 shadow-sm hover:shadow-md transition-all duration-300">
@@ -288,20 +353,42 @@ const UploadPrescriptionPage = () => {
                       className="text-red-500 hover:text-red-700 transition-colors duration-300"
                     >
                       <X size={18} />
+
+              <div className="mt-4 space-y-2">
+                {selectedFiles.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between bg-white p-2 rounded border">
+                    <span className="text-sm text-gray-600 truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <X size={16} />
+
                     </button>
                   </div>
                 ))}
               </div>
             )}
             
+
             <p className="text-sm text-indigo-500 mt-4">
+
+            <p className="text-sm text-gray-400 mt-2">
+
               Supported formats: JPG, PNG, PDF (Max size: 5MB per file)
             </p>
           </div>
 
+
           <div className="mt-8 bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-lg">
             <h4 className="font-semibold mb-4 text-purple-700">Important Notes:</h4>
             <ul className="list-disc list-inside text-purple-600 space-y-2">
+
+          <div className="mt-8">
+            <h4 className="font-semibold mb-4">Important Notes:</h4>
+            <ul className="list-disc list-inside text-gray-600 space-y-2">
+
               <li>You can upload up to 3 prescription images</li>
               <li>Ensure the prescriptions are clearly visible and readable</li>
               <li>Include all pages of the prescription</li>
