@@ -29,6 +29,8 @@ import CustomersAdmin from "./pages/admin/CustomersAdmin";
 import FeedbackAdmin from "./pages/admin/FeedbackAdmin";
 import InventoryAdmin from "./pages/admin/InventoryAdmin";
 import SuppliersAdmin from "./pages/admin/SuppliersAdmin";
+import SupportAdmin from "./pages/admin/SupportAdmin";
+import ReportsAdmin from "./pages/admin/ReportsAdmin";
 
 // Pharmacy Pages
 import PharmacyDashboard from "./pages/pharmacy/PharmacyDashboard";
@@ -123,8 +125,10 @@ function App() {
         <Route path="orders" element={<OrdersAdmin />} />
         <Route path="customers" element={<CustomersAdmin />} />
         <Route path="feedback" element={<FeedbackAdmin />} />
+        <Route path="support" element={<SupportAdmin />} />
         <Route path="inventory" element={<InventoryAdmin />} />
         <Route path="suppliers" element={<SuppliersAdmin />} />
+        <Route path="reports" element={<ReportsAdmin />} />
       </Route>
 
       {/* Payment Route */}
