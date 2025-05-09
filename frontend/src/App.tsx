@@ -28,7 +28,14 @@ import OrdersAdmin from "./pages/admin/OrdersAdmin";
 import CustomersAdmin from "./pages/admin/CustomersAdmin";
 import FeedbackAdmin from "./pages/admin/FeedbackAdmin";
 import InventoryAdmin from "./pages/admin/InventoryAdmin";
+
+import SupplierList from "./pages/admin/SupplierList";
+import SupplierForm from "./pages/admin/SupplierForm";
+import SupplierDetails from "./pages/admin/SupplierDetails";
+
 import SuppliersAdmin from "./pages/admin/SuppliersAdmin";
+import SupportAdmin from "./pages/admin/SupportAdmin";
+import ReportsAdmin from "./pages/admin/ReportsAdmin";
 
 // Pharmacy Pages
 import PharmacyDashboard from "./pages/pharmacy/PharmacyDashboard";
@@ -116,15 +123,24 @@ function App() {
           <AdminLayout />
         </ProtectedRoute>
       }>
-        <Route index element={<AdminDashboard />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="prescriptions" element={<PrescriptionsAdmin />} />
         <Route path="products" element={<ProductsAdmin />} />
         <Route path="medicines" element={<MedicinesAdmin />} />
         <Route path="orders" element={<OrdersAdmin />} />
         <Route path="customers" element={<CustomersAdmin />} />
         <Route path="feedback" element={<FeedbackAdmin />} />
+        <Route path="support" element={<SupportAdmin />} />
         <Route path="inventory" element={<InventoryAdmin />} />
+
+        <Route path="suppliers" element={<SupplierList />} />
+        <Route path="suppliers/new" element={<SupplierForm />} />
+        <Route path="suppliers/:id" element={<SupplierDetails />} />
+        <Route path="suppliers/:id/edit" element={<SupplierForm />} />
+
         <Route path="suppliers" element={<SuppliersAdmin />} />
+        <Route path="reports" element={<ReportsAdmin />} />
       </Route>
 
       {/* Payment Route */}

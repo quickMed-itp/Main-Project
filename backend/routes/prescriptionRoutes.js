@@ -11,13 +11,13 @@ router.use(authController.protect);
 // User routes
 router
   .route('/')
-  .post(upload.single('prescription'), uploadController.uploadPrescription)
+  .post(upload.array('prescription', 3), uploadController.uploadPrescription)
   .get(uploadController.getUserPrescriptions);
 
 router
   .route('/:id')
   .get(uploadController.getPrescriptionById)
-  .patch(upload.single('prescription'), uploadController.updatePrescription)
+  .patch(upload.array('prescription', 3), uploadController.updatePrescription)
   .delete(uploadController.deletePrescription);
 
 // Admin/Pharmacy routes
