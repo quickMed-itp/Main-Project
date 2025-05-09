@@ -41,8 +41,6 @@ exports.uploadPrescription = async (req, res) => {
       patientName: req.body.patientName,
       patientAge: req.body.patientAge,
 
-      filePaths: [req.file.path],
-
       filePaths: req.files.map(file => file.path),
 
       notes: req.body.notes
@@ -152,21 +150,11 @@ exports.updatePrescription = async (req, res) => {
     if (req.body.notes) prescription.notes = req.body.notes;
     if (req.body.status) prescription.status = req.body.status;
 
-
-    // Handle file upload if new file is provided
-    if (req.file) {
-      // Delete old files
-      for (const filePath of prescription.filePaths) {
-        await deleteFile(filePath);
-      }
-      prescription.filePaths = [req.file.path];
-
     // Handle file upload if new files are provided
     if (req.files && req.files.length > 0) {
       // Delete old files
       await deleteFiles(prescription.filePaths);
       prescription.filePaths = req.files.map(file => file.path);
-
     }
 
     await prescription.save();
@@ -231,6 +219,37 @@ exports.deletePrescription = async (req, res) => {
 };
 
 // Admin/Pharmacy methods
+exports.getAllPrescriptions = async (req, res) => {
+  try {
+    const prescriptions = await Prescription.find()
+      .populate('userId', 'name email')
+      .sort('-createdAt');
+    
+    // Add file URLs to each prescription
+    const prescriptionsWithUrls = prescriptions.map(prescription => {
+      const prescriptionObj = prescription.toObject();
+      prescriptionObj.fileUrls = prescription.filePaths.map(filePath => 
+        `/uploads/prescriptions/${path.basename(filePath)}`
+      );
+      return prescriptionObj;
+    });
+    
+    res.status(200).json({
+      status: 'success',
+      results: prescriptions.length,
+      data: {
+        prescriptions: prescriptionsWithUrls
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching prescriptions:', err);
+    res.status(400).json({
+      status: 'fail',
+      message: err.message || 'Error fetching prescriptions'
+    });
+  }
+};
+
 exports.updatePrescriptionStatus = async (req, res) => {
   try {
     const prescription = await Prescription.findById(req.params.id);

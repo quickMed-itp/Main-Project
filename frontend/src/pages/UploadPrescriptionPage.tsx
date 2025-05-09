@@ -1,27 +1,30 @@
 import React, { useState, useRef } from 'react';
-import { Upload, AlertCircle, CheckCircle2, X } from 'lucide-react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { AlertCircle, CheckCircle2, Upload, X } from 'lucide-react';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
-const MAX_FILES = 3;
+const MAX_FILES = 5;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 const UploadPrescriptionPage = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [patientName, setPatientName] = useState('');
   const [patientAge, setPatientAge] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const validatePatientName = (name: string) => {
     if (!name.trim()) {
       return 'Patient name is required';
     }
-    if (!/^[A-Za-z\s]+$/.test(name)) {
-      return 'Patient name can only contain letters and spaces';
+    if (name.length < 2) {
+      return 'Patient name must be at least 2 characters long';
+    }
+    if (name.length > 50) {
+      return 'Patient name must be less than 50 characters';
     }
     return null;
   };
@@ -30,84 +33,48 @@ const UploadPrescriptionPage = () => {
     if (!age) {
       return 'Patient age is required';
     }
-    const numAge = Number(age);
+    const numAge = parseInt(age);
     if (isNaN(numAge)) {
-      return 'Age must be a number';
+      return 'Age must be a valid number';
     }
-    if (!Number.isInteger(numAge)) {
-      return 'Age must be a whole number';
-    }
-    if (numAge < 0) {
-      return 'Age cannot be negative';
-    }
-    if (numAge > 150) {
-      return 'Age seems to be invalid';
+    if (numAge < 0 || numAge > 150) {
+      return 'Age must be between 0 and 150';
     }
     return null;
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setPatientName(value);
-    const error = validatePatientName(value);
-    if (error) {
-      setError(error);
-    } else {
-      setError(null);
-    }
+    setPatientName(e.target.value);
+    setError(null);
   };
 
   const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setPatientAge(value);
-    const error = validatePatientAge(value);
-    if (error) {
-      setError(error);
-    } else {
-      setError(null);
-    }
+    setPatientAge(e.target.value);
+    setError(null);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
     setError(null);
-
+    const files = Array.from(e.target.files || []);
+    
     if (files.length > MAX_FILES) {
       setError(`You can only upload up to ${MAX_FILES} files`);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
       return;
     }
 
     const validFiles = files.filter(file => {
       if (file.size > MAX_FILE_SIZE) {
-
-        setError('File size exceeds 5MB limit');
-        setSelectedFiles([]);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-        return;
-
         setError('One or more files exceed 5MB limit');
         return false;
-
       }
 
       const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
       if (!validTypes.includes(file.type)) {
         setError('Invalid file type. Please upload JPG, PNG, or PDF');
-
         setSelectedFiles([]);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-        return;
-      }
-
-      setSelectedFiles([...selectedFiles, file]);
-
         return false;
       }
 
@@ -120,7 +87,6 @@ const UploadPrescriptionPage = () => {
 
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
-
     }
   };
 
@@ -157,15 +123,11 @@ const UploadPrescriptionPage = () => {
         return false;
       }
 
-
-      setSelectedFiles([...selectedFiles, file]);
-
       return true;
     });
 
     if (validFiles.length > 0) {
       setSelectedFiles(prev => [...prev, ...validFiles].slice(0, MAX_FILES));
-
     }
   };
 
@@ -182,12 +144,10 @@ const UploadPrescriptionPage = () => {
       return;
     }
 
-
     if (ageError) {
       setError(ageError);
       return;
     }
-
 
     if (selectedFiles.length === 0) {
       setError('Please select at least one prescription file');
@@ -203,12 +163,9 @@ const UploadPrescriptionPage = () => {
       });
 
       formData.append('patientName', patientName.trim());
-
-      formData.append('patientName', patientName);
-
       formData.append('patientAge', patientAge);
 
-      const response = await axios.post('http://localhost:5000/api/v1/prescriptions', formData, {
+      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/prescriptions`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -299,115 +256,74 @@ const UploadPrescriptionPage = () => {
           </div>
 
           {/* File Upload Section */}
-          <div 
-
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 ${
-              selectedFiles.length > 0 
-                ? 'border-green-500 bg-green-50 hover:bg-green-100' 
-                : 'border-indigo-300 hover:border-indigo-400 hover:bg-indigo-50'
-
-            className={`border-2 border-dashed rounded-lg p-8 text-center ${
-              selectedFiles.length > 0 ? 'border-green-500 bg-green-50' : 'border-gray-300'
-
-            }`}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          >
-
-            <Upload className="mx-auto h-16 w-16 text-indigo-400 mb-4" />
-            <h3 className="text-2xl font-semibold mb-2 text-indigo-700">Upload your prescriptions</h3>
-            <p className="text-indigo-600 mb-4">
-
-            <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Upload your prescriptions</h3>
-            <p className="text-gray-500 mb-4">
-
-              Drag and drop your prescription files here, or click to select files (up to 3)
-            </p>
-            <input
-              type="file"
-              className="hidden"
-              id="prescription-upload"
-              accept=".jpg,.jpeg,.png,.pdf"
-              onChange={handleFileChange}
-              ref={fileInputRef}
-              multiple
-            />
-            <label
-              htmlFor="prescription-upload"
-              className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer transform transition-all duration-300 hover:scale-105 shadow-md"
+          <div className="mb-8">
+            <h3 className="text-2xl font-semibold mb-4 text-indigo-700">Upload Prescription</h3>
+            <div
+              className="border-2 border-dashed border-indigo-200 rounded-lg p-8 text-center hover:border-indigo-400 transition-colors duration-300"
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
             >
-              Choose Files
-            </label>
-            
-            {/* Selected Files Preview */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                multiple
+                accept=".jpg,.jpeg,.png,.pdf"
+                className="hidden"
+              />
+              <div className="flex flex-col items-center">
+                <Upload className="h-12 w-12 text-indigo-500 mb-4" />
+                <p className="text-indigo-600 mb-2">
+                  Drag and drop your prescription files here, or{' '}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-indigo-600 hover:text-indigo-800 font-medium underline"
+                  >
+                    browse
+                  </button>
+                </p>
+                <p className="text-sm text-gray-500">
+                  Supported formats: JPG, PNG, PDF (Max 5MB each)
+                </p>
+              </div>
+            </div>
+
+            {/* Selected Files List */}
             {selectedFiles.length > 0 && (
-
-              <div className="mt-6 space-y-3">
-                {selectedFiles.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between bg-white p-3 rounded-lg border border-indigo-200 shadow-sm hover:shadow-md transition-all duration-300">
-                    <span className="text-sm text-indigo-600 truncate">{file.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeFile(index)}
-                      className="text-red-500 hover:text-red-700 transition-colors duration-300"
+              <div className="mt-4">
+                <h4 className="text-lg font-medium text-indigo-700 mb-2">Selected Files:</h4>
+                <div className="space-y-2">
+                  {selectedFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between bg-indigo-50 p-3 rounded-lg"
                     >
-                      <X size={18} />
-
-              <div className="mt-4 space-y-2">
-                {selectedFiles.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between bg-white p-2 rounded border">
-                    <span className="text-sm text-gray-600 truncate">{file.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeFile(index)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <X size={16} />
-
-                    </button>
-                  </div>
-                ))}
+                      <span className="text-indigo-700 truncate">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-            
-
-            <p className="text-sm text-indigo-500 mt-4">
-
-            <p className="text-sm text-gray-400 mt-2">
-
-              Supported formats: JPG, PNG, PDF (Max size: 5MB per file)
-            </p>
           </div>
 
-
-          <div className="mt-8 bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-lg">
-            <h4 className="font-semibold mb-4 text-purple-700">Important Notes:</h4>
-            <ul className="list-disc list-inside text-purple-600 space-y-2">
-
-          <div className="mt-8">
-            <h4 className="font-semibold mb-4">Important Notes:</h4>
-            <ul className="list-disc list-inside text-gray-600 space-y-2">
-
-              <li>You can upload up to 3 prescription images</li>
-              <li>Ensure the prescriptions are clearly visible and readable</li>
-              <li>Include all pages of the prescription</li>
-              <li>Make sure the doctor's signature is visible</li>
-              <li>Prescriptions must be valid and not expired</li>
-            </ul>
-          </div>
-
-          <div className="mt-8">
+          {/* Submit Button */}
+          <div className="flex justify-center">
             <button
               type="submit"
               disabled={isUploading}
-              className={`w-full py-4 px-6 rounded-lg text-white font-medium text-lg transform transition-all duration-300 ${
-                isUploading
-                  ? 'bg-indigo-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:scale-[1.02] shadow-lg'
+              className={`px-8 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors duration-300 ${
+                isUploading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              {isUploading ? 'Uploading...' : 'Upload Prescriptions'}
+              {isUploading ? 'Uploading...' : 'Upload Prescription'}
             </button>
           </div>
         </form>

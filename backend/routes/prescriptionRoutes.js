@@ -14,6 +14,9 @@ router
   .post(upload.array('prescription', 3), uploadController.uploadPrescription)
   .get(uploadController.getUserPrescriptions);
 
+// Admin routes
+router.get('/admin/all', authController.restrictTo('admin'), uploadController.getAllPrescriptions);
+
 router
   .route('/:id')
   .get(uploadController.getPrescriptionById)

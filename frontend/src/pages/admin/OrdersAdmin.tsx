@@ -1,17 +1,11 @@
 import React, { useEffect, useState } from 'react';
-
 import axios, { AxiosError } from 'axios';
 import { X, Trash2, Eye, Package, Truck, CheckCircle, AlertCircle, PenSquare } from 'lucide-react';
-
-import axios from 'axios';
-import { X } from 'lucide-react';
-
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
 
 interface Order {
   _id: string;
-
   orderNumber: string;
   userId: {
     _id: string;
@@ -49,23 +43,6 @@ interface Order {
 interface ApiError {
   message: string;
   status: string;
-
-  user: {
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-  items: Array<{
-    product: {
-      name: string;
-      price: number;
-    };
-    quantity: number;
-  }>;
-  totalAmount: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  createdAt: string;
-
 }
 
 const OrdersAdmin = () => {
@@ -74,10 +51,8 @@ const OrdersAdmin = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
-
 
   useEffect(() => {
     fetchOrders();
@@ -88,7 +63,6 @@ const OrdersAdmin = () => {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem('pharmacy_token');
-
       console.log('Fetching orders with token:', token);
       
       const response = await axios.get(`${API_BASE_URL}/orders/admin/all`, {
@@ -110,15 +84,6 @@ const OrdersAdmin = () => {
       const error = err as AxiosError<ApiError>;
       console.error('Error fetching orders:', error);
       setError(error.response?.data?.message || 'Failed to fetch orders. Please try again later.');
-
-      const response = await axios.get(`${API_BASE_URL}/orders`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setOrders(response.data.data.orders);
-    } catch (err) {
-      console.error('Error fetching orders:', err);
-      setError('Failed to fetch orders. Please try again later.');
-
     } finally {
       setLoading(false);
     }
@@ -147,7 +112,6 @@ const OrdersAdmin = () => {
         setSelectedOrder(null);
       }
     } catch (err) {
-
       const error = err as AxiosError<ApiError>;
       console.error('Error updating order status:', error);
       setError(error.response?.data?.message || 'Failed to update order status. Please try again.');
@@ -178,10 +142,6 @@ const OrdersAdmin = () => {
       console.error('Error deleting order:', error);
       setError(error.response?.data?.message || 'Failed to delete order. Please try again.');
     }
-  };
-
-  const formatPrice = (amount: number) => {
-    return `Rs. ${amount.toFixed(2)}`;
   };
 
   const getStatusIcon = (status: Order['status']) => {
@@ -215,25 +175,19 @@ const OrdersAdmin = () => {
         return 'bg-red-100 text-red-800 border-red-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
-
-      console.error('Error updating order status:', err);
-      setError('Failed to update order status. Please try again.');
-
     }
+  };
+
+  const formatPrice = (amount: number) => {
+    return `Rs. ${amount.toFixed(2)}`;
   };
 
   if (loading) {
     return (
       <div className="p-6">
-
         <h1 className="text-3xl font-bold mb-6 text-gray-800">Orders Management</h1>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-center text-gray-600">Loading orders...</div>
-
-        <h1 className="text-3xl font-bold mb-6">Orders Management</h1>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-center">Loading orders...</div>
-
         </div>
       </div>
     );
@@ -242,20 +196,12 @@ const OrdersAdmin = () => {
   if (error) {
     return (
       <div className="p-6">
-
         <h1 className="text-3xl font-bold mb-6 text-gray-800">Orders Management</h1>
-
-        <h1 className="text-3xl font-bold mb-6">Orders Management</h1>
-
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-red-600">{error}</div>
           <button 
             onClick={fetchOrders}
-
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-
           >
             Retry
           </button>
@@ -266,29 +212,17 @@ const OrdersAdmin = () => {
 
   return (
     <div className="p-6">
-
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Orders Management</h1>
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {orders.length === 0 ? (
           <div className="text-center text-gray-500 p-6">No orders found</div>
-
-      <h1 className="text-3xl font-bold mb-6">Orders Management</h1>
-      <div className="bg-white rounded-lg shadow p-6">
-        {orders.length === 0 ? (
-          <div className="text-center text-gray-500">No orders found</div>
-
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
-
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
@@ -297,7 +231,6 @@ const OrdersAdmin = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {orders.map(order => (
-
                   <tr key={order._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {order.orderNumber}
@@ -316,42 +249,10 @@ const OrdersAdmin = () => {
                           {order.status}
                         </span>
                       </div>
-
-                  <tr key={order._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {order.user.firstName} {order.user.lastName}
-                      </div>
-                      <div className="text-sm text-gray-500">{order.user.email}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        {order.items.map(item => (
-                          <div key={item.product.name}>
-                            {item.quantity}x {item.product.name}
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">${order.totalAmount.toFixed(2)}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                        order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                        order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
-                        order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {order.status}
-                      </span>
-
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(order.createdAt).toLocaleDateString()}
                     </td>
-
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                       <button
                         onClick={() => { setSelectedOrder(order); setDetailsModalOpen(true); }}
@@ -373,14 +274,6 @@ const OrdersAdmin = () => {
                         title="Delete Order"
                       >
                         <Trash2 size={18} />
-
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => { setSelectedOrder(order); setModalOpen(true); }}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        Update Status
-
                       </button>
                     </td>
                   </tr>
@@ -390,7 +283,6 @@ const OrdersAdmin = () => {
           </div>
         )}
       </div>
-
 
       {/* Order Details Modal */}
       {detailsModalOpen && selectedOrder && (
@@ -502,21 +394,15 @@ const OrdersAdmin = () => {
         </div>
       )}
 
-
       {/* Status Update Modal */}
       {modalOpen && selectedOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
-
               <h2 className="text-xl font-semibold text-gray-800">Update Order Status</h2>
               <button onClick={() => setModalOpen(false)} className="text-gray-500 hover:text-gray-700">
                 <X size={24} />
               </button>
-
-              <h2 className="text-xl font-semibold">Update Order Status</h2>
-              <button onClick={() => setModalOpen(false)}><X size={24} /></button>
-
             </div>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -524,7 +410,6 @@ const OrdersAdmin = () => {
                   <button
                     key={status}
                     onClick={() => handleStatusUpdate(selectedOrder._id, status)}
-
                     className={`px-4 py-3 rounded-lg flex items-center justify-center space-x-2 transition-all ${
                       selectedOrder.status === status
                         ? 'bg-blue-100 border-2 border-blue-500 text-blue-700'
@@ -533,16 +418,6 @@ const OrdersAdmin = () => {
                   >
                     {getStatusIcon(status)}
                     <span className="font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</span>
-
-                    disabled={selectedOrder.status === status}
-                    className={`px-4 py-2 rounded ${
-                      selectedOrder.status === status
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                  >
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-
                   </button>
                 ))}
               </div>
@@ -550,7 +425,6 @@ const OrdersAdmin = () => {
           </div>
         </div>
       )}
-
 
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && selectedOrder && (
@@ -580,7 +454,6 @@ const OrdersAdmin = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
