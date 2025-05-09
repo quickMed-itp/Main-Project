@@ -1,26 +1,56 @@
 const Contact = require('../models/Contact');
+const AppError = require('../utils/appError');
 
-exports.createContact = async (req, res) => {
+// Submit contact form
+exports.submitContact = async (req, res, next) => {
   try {
-    const { name, email, phone, message } = req.body;
-    
-    const contact = await Contact.create({
-      name,
+    const { firstName, lastName, email, message } = req.body;
+
+    // Validate required fields
+    if (!firstName || !lastName || !email || !message) {
+      return next(new AppError('Please provide all required fields', 400));
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return next(new AppError('Please provide a valid email address', 400));
+    }
+
+    // Create new contact entry
+    const contact = new Contact({
+      firstName,
+      lastName,
       email,
-      phone,
       message
     });
-    
+
+    // Save to database
+    await contact.save();
+
     res.status(201).json({
-      status: 'success',
-      data: {
-        contact
-      }
+      success: true,
+      message: 'Thank you for your message. We will get back to you soon!',
+      data: contact
     });
-  } catch (err) {
-    res.status(400).json({
-      status: 'fail',
-      message: err.message
+  } catch (error) {
+    console.error('Contact form submission error:', error);
+    next(new AppError('Error submitting contact form. Please try again.', 500));
+  }
+};
+
+// Get all contact submissions (admin only)
+exports.getAllContacts = async (req, res, next) => {
+  try {
+    const contacts = await Contact.find().sort({ createdAt: -1 });
+    
+    res.status(200).json({
+      success: true,
+      count: contacts.length,
+      data: contacts
     });
+  } catch (error) {
+    console.error('Error fetching contacts:', error);
+    next(new AppError('Error fetching contact submissions', 500));
   }
 };
