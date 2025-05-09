@@ -16,6 +16,7 @@ const feedbackRouter = require('./routes/feedbackRoutes');
 const batchRoutes = require('./routes/batchRoutes');
 const medicineRouter = require('./routes/medicineRoutes');
 const userRoutes = require('./routes/userRoutes');
+const supplierRouter = require('./routes/supplierRoutes');
 
 const globalErrorHandler = require('./utils/errorHandler');
 
@@ -53,6 +54,7 @@ app.use('/api/v1/feedback', feedbackRouter);
 app.use('/api/v1/batches', batchRoutes);
 app.use('/api/v1/medicines', medicineRouter);
 app.use('/api/users', userRoutes);
+app.use('/api/v1/suppliers', supplierRouter);
 
 // Error handling
 app.use(globalErrorHandler);
