@@ -8,11 +8,24 @@ const prescriptionSchema = new mongoose.Schema({
   },
   patientName: {
     type: String,
-    required: true
+    required: [true, 'Patient name is required'],
+    trim: true,
+    validate: {
+      validator: function(v) {
+        return /^[A-Za-z\s]+$/.test(v);
+      },
+      message: 'Patient name can only contain letters and spaces'
+    }
   },
   patientAge: {
     type: Number,
-    required: true
+    required: [true, 'Patient age is required'],
+    min: [0, 'Age cannot be negative'],
+    max: [150, 'Age seems to be invalid'],
+    validate: {
+      validator: Number.isInteger,
+      message: 'Age must be a whole number'
+    }
   },
   filePaths: [{
     type: String,

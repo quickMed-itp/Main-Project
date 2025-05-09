@@ -40,7 +40,11 @@ exports.uploadPrescription = async (req, res) => {
       userId: req.user._id,
       patientName: req.body.patientName,
       patientAge: req.body.patientAge,
+
+      filePaths: [req.file.path],
+
       filePaths: req.files.map(file => file.path),
+
       notes: req.body.notes
     });
     
@@ -148,11 +152,21 @@ exports.updatePrescription = async (req, res) => {
     if (req.body.notes) prescription.notes = req.body.notes;
     if (req.body.status) prescription.status = req.body.status;
 
+
+    // Handle file upload if new file is provided
+    if (req.file) {
+      // Delete old files
+      for (const filePath of prescription.filePaths) {
+        await deleteFile(filePath);
+      }
+      prescription.filePaths = [req.file.path];
+
     // Handle file upload if new files are provided
     if (req.files && req.files.length > 0) {
       // Delete old files
       await deleteFiles(prescription.filePaths);
       prescription.filePaths = req.files.map(file => file.path);
+
     }
 
     await prescription.save();
@@ -194,7 +208,13 @@ exports.deletePrescription = async (req, res) => {
     }
 
     // Delete all files
+
+    for (const filePath of prescription.filePaths) {
+      await deleteFile(filePath);
+    }
+
     await deleteFiles(prescription.filePaths);
+
 
     await prescription.deleteOne();
 
