@@ -2,14 +2,18 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { X } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+
 interface Support {
   _id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  subject: string;
   message: string;
-  status: 'pending' | 'resolved' | 'in-progress';
+  status: 'pending' | 'resolved' | 'rejected';
+  reply?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 const SupportAdmin = () => {
@@ -30,11 +34,12 @@ const SupportAdmin = () => {
       setError(null);
       try {
         const token = localStorage.getItem('pharmacy_token');
-        const res = await axios.get('/support', {
+        const res = await axios.get(`${API_BASE_URL}/support`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSupportTickets(res.data.data.tickets);
-      } catch {
+      } catch (err) {
+        console.error('Error fetching support tickets:', err);
         setError('Failed to fetch support tickets');
       } finally {
         setLoading(false);
@@ -45,9 +50,9 @@ const SupportAdmin = () => {
 
   // Filtered tickets
   const filteredTickets = supportTickets.filter(ticket => {
+    const fullName = `${ticket.firstName} ${ticket.lastName}`.toLowerCase();
     const matchesSearch =
-      ticket.name.toLowerCase().includes(search.toLowerCase()) ||
-      ticket.subject.toLowerCase().includes(search.toLowerCase()) ||
+      fullName.includes(search.toLowerCase()) ||
       ticket.message.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter ? ticket.status === statusFilter : true;
     return matchesSearch && matchesStatus;
@@ -63,33 +68,64 @@ const SupportAdmin = () => {
     if (!ticketToDelete) return;
     try {
       const token = localStorage.getItem('pharmacy_token');
-      await axios.delete(`/support/${ticketToDelete._id}`, {
+      await axios.delete(`${API_BASE_URL}/support/${ticketToDelete._id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSupportTickets(tickets => tickets.filter(t => t._id !== ticketToDelete._id));
       setDeleteModalOpen(false);
       setTicketToDelete(null);
-    } catch {
+    } catch (err) {
+      console.error('Error deleting ticket:', err);
       setError('Failed to delete ticket');
     }
   };
 
   // Update ticket status
-  const handleStatus = async (id: string, status: 'resolved' | 'in-progress') => {
+  const handleStatus = async (id: string, status: 'resolved' | 'rejected') => {
     try {
+      setError(null);
       const token = localStorage.getItem('pharmacy_token');
-      await axios.patch(`/support/${id}/status`, { status }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSupportTickets(tickets =>
-        tickets.map(ticket =>
-          ticket._id === id ? { ...ticket, status } : ticket
-        )
+      
+      // Configure axios request
+      const config = {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 5000 // 5 second timeout
+      };
+
+      const response = await axios.patch(
+        `${API_BASE_URL}/support/${id}/status`,
+        { status },
+        config
       );
-      setModalOpen(false);
-      setSelectedTicket(null);
-    } catch {
-      setError(`Failed to update ticket status`);
+
+      if (response.data.status === 'success') {
+        // Update the ticket in the state
+        setSupportTickets(tickets =>
+          tickets.map(ticket =>
+            ticket._id === id ? { ...ticket, status: response.data.data.ticket.status } : ticket
+          )
+        );
+        setModalOpen(false);
+        setSelectedTicket(null);
+      } else {
+        setError('Failed to update ticket status');
+      }
+    } catch (err) {
+      console.error('Error updating ticket status:', err);
+      if (axios.isAxiosError(err)) {
+        if (err.code === 'ERR_NETWORK') {
+          setError('Network error. Please check your connection and try again.');
+        } else if (err.response) {
+          setError(err.response.data?.message || 'Failed to update ticket status');
+        } else {
+          setError('Failed to update ticket status. Please try again.');
+        }
+      } else {
+        setError('An unexpected error occurred');
+      }
     }
   };
 
@@ -112,8 +148,8 @@ const SupportAdmin = () => {
           >
             <option value="">All Status</option>
             <option value="pending">Pending</option>
-            <option value="in-progress">In Progress</option>
             <option value="resolved">Resolved</option>
+            <option value="rejected">Rejected</option>
           </select>
         </div>
         {loading ? (
@@ -126,7 +162,7 @@ const SupportAdmin = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -135,13 +171,19 @@ const SupportAdmin = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredTickets.map(ticket => (
                   <tr key={ticket._id} className="hover:bg-gray-100 cursor-pointer">
-                    <td className="px-6 py-4 whitespace-nowrap" onClick={() => { setSelectedTicket(ticket); setModalOpen(true); }}>{ticket.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap" onClick={() => { setSelectedTicket(ticket); setModalOpen(true); }}>{ticket.subject}</td>
-                    <td className="px-6 py-4 whitespace-nowrap max-w-xs truncate" onClick={() => { setSelectedTicket(ticket); setModalOpen(true); }}>{ticket.message.length > 40 ? ticket.message.slice(0, 40) + '...' : ticket.message}</td>
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={() => { setSelectedTicket(ticket); setModalOpen(true); }}>
+                      {ticket.firstName} {ticket.lastName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={() => { setSelectedTicket(ticket); setModalOpen(true); }}>
+                      {ticket.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap max-w-xs truncate" onClick={() => { setSelectedTicket(ticket); setModalOpen(true); }}>
+                      {ticket.message.length > 40 ? ticket.message.slice(0, 40) + '...' : ticket.message}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap" onClick={() => { setSelectedTicket(ticket); setModalOpen(true); }}>
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         ticket.status === 'resolved' ? 'bg-green-100 text-green-800' : 
-                        ticket.status === 'in-progress' ? 'bg-blue-100 text-blue-800' : 
+                        ticket.status === 'rejected' ? 'bg-red-100 text-red-800' : 
                         'bg-yellow-100 text-yellow-800'
                       }`}>{ticket.status}</span>
                     </td>
@@ -164,10 +206,17 @@ const SupportAdmin = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
           <div className="bg-white rounded-lg p-6 w-full max-w-lg relative">
             <button className="absolute top-4 right-4" onClick={() => setModalOpen(false)}><X size={24} /></button>
-            <h2 className="text-xl font-semibold mb-2">Support Ticket from {selectedTicket.name}</h2>
+            <h2 className="text-xl font-semibold mb-2">
+              Support Ticket from {selectedTicket.firstName} {selectedTicket.lastName}
+            </h2>
             <div className="mb-2 text-gray-600">Email: {selectedTicket.email}</div>
-            <div className="mb-2 text-gray-600">Subject: {selectedTicket.subject}</div>
             <div className="mb-4 whitespace-pre-line">{selectedTicket.message}</div>
+            {selectedTicket.reply && (
+              <div className="mb-4 p-4 bg-gray-50 rounded">
+                <h3 className="font-medium mb-2">Reply:</h3>
+                <p className="whitespace-pre-line">{selectedTicket.reply}</p>
+              </div>
+            )}
             <div className="flex justify-end gap-3">
               {selectedTicket.status !== 'resolved' && (
                 <button
@@ -175,11 +224,11 @@ const SupportAdmin = () => {
                   onClick={() => handleStatus(selectedTicket._id, 'resolved')}
                 >Mark as Resolved</button>
               )}
-              {selectedTicket.status !== 'in-progress' && (
+              {selectedTicket.status !== 'rejected' && (
                 <button
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  onClick={() => handleStatus(selectedTicket._id, 'in-progress')}
-                >Mark as In Progress</button>
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  onClick={() => handleStatus(selectedTicket._id, 'rejected')}
+                >Mark as Rejected</button>
               )}
               <button
                 className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
@@ -196,7 +245,9 @@ const SupportAdmin = () => {
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-semibold mb-4">Confirm Delete</h2>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete this support ticket from <span className="font-semibold">{ticketToDelete.name}</span>?
+              Are you sure you want to delete this support ticket from <span className="font-semibold">
+                {ticketToDelete.firstName} {ticketToDelete.lastName}
+              </span>?
             </p>
             <div className="flex justify-end space-x-3">
               <button

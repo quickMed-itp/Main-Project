@@ -17,6 +17,7 @@ const batchRoutes = require('./routes/batchRoutes');
 const medicineRouter = require('./routes/medicineRoutes');
 const userRoutes = require('./routes/userRoutes');
 const supplierRouter = require('./routes/supplierRoutes');
+const supportRouter = require('./routes/supportRoutes');
 
 const globalErrorHandler = require('./utils/errorHandler');
 
@@ -26,8 +27,10 @@ const app = express();
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400 // 24 hours
 }));
 
 // Body parser middleware
@@ -65,6 +68,7 @@ app.use('/api/v1/batches', batchRoutes);
 app.use('/api/v1/medicines', medicineRouter);
 app.use('/api/users', userRoutes);
 app.use('/api/v1/suppliers', supplierRouter);
+app.use('/api/v1/support', supportRouter);
 
 // 404 handler
 app.use((req, res, next) => {
