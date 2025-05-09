@@ -11,7 +11,6 @@ const cartRouter = require('./routes/cartRoutes');
 const orderRouter = require('./routes/orderRoutes');
 const profileRouter = require('./routes/profileRoutes');
 const prescriptionRouter = require('./routes/prescriptionRoutes');
-const contactRouter = require('./routes/contactRoutes');
 const feedbackRouter = require('./routes/feedbackRoutes');
 const batchRoutes = require('./routes/batchRoutes');
 const medicineRouter = require('./routes/medicineRoutes');
