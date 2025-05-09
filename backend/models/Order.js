@@ -21,9 +21,18 @@ const orderItemSchema = new mongoose.Schema({
 });
 
 const orderSchema = new mongoose.Schema({
+  orderNumber: {
+    type: String,
+    required: true,
+    unique: true
+  },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
+    required: true
+  },
+  customer: {
+    type: String,
     required: true
   },
   items: [orderItemSchema],
@@ -32,18 +41,40 @@ const orderSchema = new mongoose.Schema({
     required: true
   },
   shippingAddress: {
-    street: String,
-    city: String,
-    state: String,
-    zipCode: String
+    label: String,
+    houseNumber: String,
+    streetName: String,
+    villageArea: String,
+    townCity: String,
+    district: String,
+    postalCode: String,
+    fullAddress: String
   },
   status: {
     type: String,
     enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
     default: 'pending'
   },
+  paymentMethod: {
+    type: String,
+    enum: ['visa', 'mastercard'],
+    required: true
+  },
+  paymentDetails: {
+    cardType: String,
+    lastFourDigits: String
+  },
   trackingNumber: {
     type: String
+  },
+  adminNotes: {
+    type: String
+  },
+  estimatedDelivery: {
+    type: Date
+  },
+  actualDelivery: {
+    type: Date
   },
   createdAt: {
     type: Date,
@@ -53,6 +84,40 @@ const orderSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+}, {
+  timestamps: true
 });
+
+// Add indexes
+orderSchema.index({ orderNumber: 1 }, { unique: true });
+orderSchema.index({ userId: 1 });
+orderSchema.index({ status: 1 });
+orderSchema.index({ createdAt: -1 });
+
+// Add virtual for formatted date
+orderSchema.virtual('formattedDate').get(function() {
+  return this.createdAt.toLocaleDateString();
+});
+
+// Add method to update status
+orderSchema.methods.updateStatus = async function(newStatus) {
+  this.status = newStatus;
+  if (newStatus === 'delivered') {
+    this.actualDelivery = new Date();
+  }
+  return this.save();
+};
+
+// Add method to add admin notes
+orderSchema.methods.addAdminNote = async function(note) {
+  this.adminNotes = note;
+  return this.save();
+};
+
+// Add method to update tracking
+orderSchema.methods.updateTracking = async function(trackingNumber) {
+  this.trackingNumber = trackingNumber;
+  return this.save();
+};
 
 module.exports = mongoose.model('Order', orderSchema);

@@ -365,12 +365,14 @@ const PaymentPage: React.FC = () => {
         return;
       }
 
-      console.log('Selected Address:', selectedAddressData);
-      console.log('Cart Items:', cart);
-      console.log('Total Price:', totalPrice);
+      // Generate a unique order number
+      const timestamp = new Date().getTime();
+      const randomNum = Math.floor(Math.random() * 1000);
+      const orderNumber = `ORD-${timestamp}-${randomNum}`;
 
       // Create order data with complete address details
       const orderData = {
+        orderNumber, // Add the generated order number
         orderItems: cart.map(item => ({
           productId: item.productId,
           name: item.name,
@@ -388,7 +390,12 @@ const PaymentPage: React.FC = () => {
           postalCode: selectedAddressData.postalCode || '',
           fullAddress: selectedAddressData.address || ''
         },
-        status: 'pending'
+        status: 'pending',
+        paymentMethod: selectedCardType,
+        paymentDetails: {
+          cardType: selectedCardType,
+          lastFourDigits: card.number.slice(-4)
+        }
       };
 
       console.log('Order Data being sent:', JSON.stringify(orderData, null, 2));
@@ -442,7 +449,7 @@ const PaymentPage: React.FC = () => {
       localStorage.setItem('currentOrder', JSON.stringify(trackingData));
 
       // Navigate to order tracking page
-      navigate('/order-tracking');
+      navigate('/track-order');
     } catch (error) {
       console.error('Order creation failed:', error);
       console.error('Error details:', {

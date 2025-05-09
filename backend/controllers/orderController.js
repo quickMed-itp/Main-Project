@@ -1,7 +1,6 @@
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
-const OrderAdmin = require('../models/OrderAdmin');
 const User = require('../models/User');
 
 // Get all orders (Admin only)
@@ -65,25 +64,20 @@ exports.createOrder = async (req, res) => {
     const totalAmount = orderItems.reduce(
       (sum, item) => sum + (item.price * item.quantity), 0
     );
-    
-    const order = await Order.create({
-      userId: req.user._id,
-      items: orderItems,
-      totalAmount,
-      shippingAddress: req.body.shippingAddress || req.user.address,
-      status: 'pending'
-    });
 
     // Get user information
     const user = await User.findById(req.user._id);
     
-    // Create entry in OrderAdmin table
-    await OrderAdmin.create({
-      orderId: order._id.toString(),
+    const order = await Order.create({
+      userId: req.user._id,
+      orderNumber: req.body.orderNumber,
       customer: user.name || user.email,
-      date: new Date(),
-      amount: totalAmount,
-      status: 'shipped'
+      items: orderItems,
+      totalAmount,
+      shippingAddress: req.body.shippingAddress || req.user.address,
+      status: 'pending',
+      paymentMethod: req.body.paymentMethod,
+      paymentDetails: req.body.paymentDetails
     });
     
     // Clear the cart
@@ -96,6 +90,7 @@ exports.createOrder = async (req, res) => {
       }
     });
   } catch (err) {
+    console.error('Order creation error:', err);
     res.status(400).json({
       status: 'fail',
       message: err.message
@@ -172,14 +167,6 @@ exports.updateOrder = async (req, res) => {
         runValidators: true
       }
     ).populate('userId', 'name email');
-
-    // Update OrderAdmin table if status is changed
-    if (req.body.status) {
-      await OrderAdmin.findOneAndUpdate(
-        { orderId: req.params.id },
-        { status: req.body.status }
-      );
-    }
     
     res.status(200).json({
       status: 'success',
@@ -222,9 +209,7 @@ exports.deleteOrder = async (req, res) => {
       });
     }
 
-    // Delete from both Order and OrderAdmin tables
     await Order.findByIdAndDelete(req.params.id);
-    await OrderAdmin.findOneAndDelete({ orderId: req.params.id });
     
     res.status(204).json({
       status: 'success',
