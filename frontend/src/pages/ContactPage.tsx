@@ -1,17 +1,36 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin } from 'lucide-react';
-import axios from '../utils/axios';
+import axios, { AxiosError } from 'axios';
+
+interface FormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  message: string;
+}
+
+interface FormErrors {
+  firstName: string;
+  lastName: string;
+  email: string;
+  message: string;
+}
+
+interface Status {
+  type: 'success' | 'error' | '';
+  message: string;
+}
 
 const ContactPage = () => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
     email: '',
     message: ''
   });
-  const [status, setStatus] = useState({ type: '', message: '' });
+  const [status, setStatus] = useState<Status>({ type: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState({
+  const [errors, setErrors] = useState<FormErrors>({
     firstName: '',
     lastName: '',
     email: '',
@@ -80,10 +99,16 @@ const ContactPage = () => {
     setStatus({ type: '', message: '' });
 
     try {
-      const response = await axios.post('/contact/submit', formData);
+      const response = await axios.post('/support/contact', {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        message: formData.message
+      });
+      
       setStatus({
         type: 'success',
-        message: response.data.message
+        message: response.data.message || 'Message sent successfully!'
       });
       setFormData({
         firstName: '',
@@ -91,12 +116,19 @@ const ContactPage = () => {
         email: '',
         message: ''
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Contact form submission error:', error);
-      setStatus({
-        type: 'error',
-        message: error.response?.data?.message || 'Something went wrong. Please try again.'
-      });
+      if (error instanceof AxiosError) {
+        setStatus({
+          type: 'error',
+          message: error.response?.data?.message || 'Unable to send message. Please try again later.'
+        });
+      } else {
+        setStatus({
+          type: 'error',
+          message: 'An unexpected error occurred. Please try again later.'
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }

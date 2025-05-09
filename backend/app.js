@@ -62,7 +62,6 @@ app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/orders', orderRouter);
 app.use('/api/v1/profile', profileRouter);
 app.use('/api/v1/prescriptions', prescriptionRouter);
-app.use('/api/v1/contact', contactRouter);
 app.use('/api/v1/feedback', feedbackRouter);
 app.use('/api/v1/batches', batchRoutes);
 app.use('/api/v1/medicines', medicineRouter);
