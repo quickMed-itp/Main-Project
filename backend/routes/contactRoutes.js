@@ -1,8 +1,12 @@
 const express = require('express');
-const contactController = require('../controllers/contactController');
-
 const router = express.Router();
+const { submitContact, getAllContacts } = require('../controllers/contactController');
+const { protect, restrictTo } = require('../middleware/auth');
 
-router.post('/', contactController.createContact);
+// Public route for submitting contact form
+router.post('/submit', submitContact);
+
+// Protected route for getting all contacts (admin only)
+router.get('/all', protect, restrictTo('admin'), getAllContacts);
 
 module.exports = router;
