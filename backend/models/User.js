@@ -32,10 +32,22 @@ const userSchema = new mongoose.Schema({
       message: 'Age must be a whole number'
     }
   },
-  address: {
-    type: String,
-    trim: true
-  },
+  addresses: [{
+    label: {
+      type: String,
+      required: [true, 'Address label is required'],
+      trim: true
+    },
+    address: {
+      type: String,
+      required: [true, 'Address is required'],
+      trim: true
+    },
+    isDefault: {
+      type: Boolean,
+      default: false
+    }
+  }],
   role: {
     type: String,
     enum: ['user', 'pharmacy', 'doctor', 'admin'],

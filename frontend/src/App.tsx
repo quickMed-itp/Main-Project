@@ -17,6 +17,7 @@ import FeedbackPage from "./pages/FeedbackPage";
 import UploadPrescriptionPage from "./pages/UploadPrescriptionPage";
 import OrderTrackingPage from "./pages/OrderTrackingPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import PaymentPage from './pages/PaymentPage';
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -125,6 +126,9 @@ function App() {
         <Route path="inventory" element={<InventoryAdmin />} />
         <Route path="suppliers" element={<SuppliersAdmin />} />
       </Route>
+
+      {/* Payment Route */}
+      <Route path="/payment" element={<PaymentPage />} />
 
       {/* 404 Route */}
       <Route path="*" element={<NotFoundPage />} />

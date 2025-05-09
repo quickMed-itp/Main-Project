@@ -1,33 +1,72 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CartItem } from '../types';
+import axios from 'axios';
+import { useAuth } from './useAuth';
 
 interface CartContextType {
   cart: CartItem[];
   totalItems: number;
   totalPrice: number;
-  addToCart: (item: Omit<CartItem, 'id'>) => void;
-  removeFromCart: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
-  clearCart: () => void;
+  addToCart: (item: Omit<CartItem, 'id'>) => Promise<void>;
+  removeFromCart: (id: string) => Promise<void>;
+  updateQuantity: (id: string, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
+  loading: boolean;
+  error: string | null;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
-  
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    const savedCart = localStorage.getItem('pharmacy_cart');
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, user } = useAuth();
+
+  const getAuthToken = () => {
+    const token = localStorage.getItem('pharmacy_token');
+    if (!token) {
+      throw new Error('No authentication token found');
     }
-  }, []);
+    return token;
+  };
+
+  const fetchCart = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      const token = getAuthToken();
+      const response = await axios.get('http://localhost:5000/api/v1/cart', {
+        headers: {
+          Authorization: `Bearer ${token}`
+    }
+      });
   
-  // Save cart to localStorage on change
+      const cartData = response.data.data.cart.items.map((item: any) => ({
+        id: item._id,
+        productId: item.productId._id,
+        name: item.productId.name,
+        price: item.productId.price,
+        image: item.productId.image,
+        quantity: item.quantity
+      }));
+      
+      setCart(cartData);
+    } catch (err) {
+      setError('Failed to fetch cart items');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    localStorage.setItem('pharmacy_cart', JSON.stringify(cart));
-  }, [cart]);
+    if (isAuthenticated) {
+      fetchCart();
+    }
+  }, [isAuthenticated]);
   
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
   
@@ -36,38 +75,106 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     0
   );
   
-  const addToCart = (item: Omit<CartItem, 'id'>) => {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(i => i.productId === item.productId);
+  const addToCart = async (item: Omit<CartItem, 'id'>) => {
+    if (!isAuthenticated) {
+      setError('Please login to add items to cart');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const token = getAuthToken();
       
-      if (existingItem) {
-        return prevCart.map(i => 
-          i.productId === item.productId 
-            ? { ...i, quantity: i.quantity + item.quantity } 
-            : i
-        );
-      }
+      await axios.post(
+        'http://localhost:5000/api/v1/cart/add',
+        {
+          productId: item.productId,
+          quantity: item.quantity
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
       
-      return [...prevCart, { ...item, id: `cart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` }];
-    });
+      await fetchCart();
+    } catch (err) {
+      setError('Failed to add item to cart');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
   
-  const removeFromCart = (id: string) => {
-    setCart(prevCart => prevCart.filter(item => item.id !== id));
+  const removeFromCart = async (id: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = getAuthToken();
+      
+      await axios.delete(`http://localhost:5000/api/v1/cart/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      await fetchCart();
+    } catch (err) {
+      setError('Failed to remove item from cart');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
   
-  const updateQuantity = (id: string, quantity: number) => {
+  const updateQuantity = async (id: string, quantity: number) => {
     if (quantity < 1) return;
     
-    setCart(prevCart => 
-      prevCart.map(item => 
-        item.id === id ? { ...item, quantity } : item
-      )
-    );
+    try {
+      setLoading(true);
+      setError(null);
+      const token = getAuthToken();
+      
+      await axios.patch(
+        `http://localhost:5000/api/v1/cart/${id}`,
+        { quantity },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      await fetchCart();
+    } catch (err) {
+      setError('Failed to update quantity');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
   
-  const clearCart = () => {
+  const clearCart = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = getAuthToken();
+      
+      await axios.delete('http://localhost:5000/api/v1/cart', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
     setCart([]);
+    } catch (err) {
+      setError('Failed to clear cart');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
   
   return (
@@ -78,7 +185,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addToCart,
       removeFromCart,
       updateQuantity,
-      clearCart
+      clearCart,
+      loading,
+      error
     }}>
       {children}
     </CartContext.Provider>
