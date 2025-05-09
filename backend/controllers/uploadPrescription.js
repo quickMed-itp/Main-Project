@@ -33,7 +33,7 @@ exports.uploadPrescription = async (req, res) => {
       userId: req.user._id,
       patientName: req.body.patientName,
       patientAge: req.body.patientAge,
-      filePath: req.file.path,
+      filePaths: [req.file.path],
       notes: req.body.notes
     });
     
@@ -60,10 +60,12 @@ exports.getUserPrescriptions = async (req, res) => {
     const prescriptions = await Prescription.find()
       .sort('-createdAt');
     
-    // Add file URL to each prescription
+    // Add file URLs to each prescription
     const prescriptionsWithUrls = prescriptions.map(prescription => {
       const prescriptionObj = prescription.toObject();
-      prescriptionObj.fileUrl = `/uploads/prescriptions/${path.basename(prescription.filePath)}`;
+      prescriptionObj.fileUrls = prescription.filePaths.map(filePath => 
+        `/uploads/prescriptions/${path.basename(filePath)}`
+      );
       return prescriptionObj;
     });
     
@@ -97,7 +99,9 @@ exports.getPrescriptionById = async (req, res) => {
     }
 
     const prescriptionObj = prescription.toObject();
-    prescriptionObj.fileUrl = `/uploads/prescriptions/${path.basename(prescription.filePath)}`;
+    prescriptionObj.fileUrls = prescription.filePaths.map(filePath => 
+      `/uploads/prescriptions/${path.basename(filePath)}`
+    );
 
     res.status(200).json({
       status: 'success',
@@ -138,15 +142,19 @@ exports.updatePrescription = async (req, res) => {
 
     // Handle file upload if new file is provided
     if (req.file) {
-      // Delete old file
-      await deleteFile(prescription.filePath);
-      prescription.filePath = req.file.path;
+      // Delete old files
+      for (const filePath of prescription.filePaths) {
+        await deleteFile(filePath);
+      }
+      prescription.filePaths = [req.file.path];
     }
 
     await prescription.save();
 
     const prescriptionObj = prescription.toObject();
-    prescriptionObj.fileUrl = `/uploads/prescriptions/${path.basename(prescription.filePath)}`;
+    prescriptionObj.fileUrls = prescription.filePaths.map(filePath => 
+      `/uploads/prescriptions/${path.basename(filePath)}`
+    );
 
     res.status(200).json({
       status: 'success',
@@ -179,8 +187,10 @@ exports.deletePrescription = async (req, res) => {
       });
     }
 
-    // Delete the file
-    await deleteFile(prescription.filePath);
+    // Delete all files
+    for (const filePath of prescription.filePaths) {
+      await deleteFile(filePath);
+    }
 
     await prescription.deleteOne();
 
@@ -221,7 +231,9 @@ exports.updatePrescriptionStatus = async (req, res) => {
     await prescription.save();
 
     const prescriptionObj = prescription.toObject();
-    prescriptionObj.fileUrl = `/uploads/prescriptions/${path.basename(prescription.filePath)}`;
+    prescriptionObj.fileUrls = prescription.filePaths.map(filePath => 
+      `/uploads/prescriptions/${path.basename(filePath)}`
+    );
 
     res.status(200).json({
       status: 'success',
