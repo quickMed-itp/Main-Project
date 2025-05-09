@@ -10,7 +10,9 @@ import {
   MessageSquare, 
   BarChart3, 
   Truck,
-  Home
+  Home,
+  Headphones,
+  FileBarChart
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -57,15 +59,17 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen }) => {
         </div>
 
         <nav className="space-y-1">
-          <NavItem to="/admin" icon={<LayoutDashboard size={18} />} label="Dashboard" />
+          <NavItem to="/admin/dashboard" icon={<LayoutDashboard size={18} />} label="Dashboard" />
           <NavItem to="/admin/prescriptions" icon={<FileText size={18} />} label="Prescriptions" />
           <NavItem to="/admin/products" icon={<Package size={18} />} label="Products" />
           <NavItem to="/admin/medicines" icon={<Pill size={18} />} label="Medicines" />
           <NavItem to="/admin/orders" icon={<ShoppingBag size={18} />} label="Orders" />
           <NavItem to="/admin/customers" icon={<Users size={18} />} label="Customers" />
           <NavItem to="/admin/feedback" icon={<MessageSquare size={18} />} label="Feedback" />
+          <NavItem to="/admin/support" icon={<Headphones size={18} />} label="Support" />
           <NavItem to="/admin/inventory" icon={<BarChart3 size={18} />} label="Inventory" />
           <NavItem to="/admin/suppliers" icon={<Truck size={18} />} label="Suppliers" />
+          <NavItem to="/admin/reports" icon={<FileBarChart size={18} />} label="Reports" />
         </nav>
       </div>
     </aside>
