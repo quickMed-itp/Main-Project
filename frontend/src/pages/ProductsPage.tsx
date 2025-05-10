@@ -262,8 +262,8 @@ const ProductsPage: React.FC = () => {
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
                 />
                 <div className="flex justify-between mt-2">
-                  <span className="text-sm text-gray-600">${priceRange[0]}</span>
-                  <span className="text-sm text-gray-600">${priceRange[1]}</span>
+                  <span className="text-sm text-gray-600">Rs. {priceRange[0]}</span>
+                  <span className="text-sm text-gray-600">Rs. {priceRange[1]}</span>
                 </div>
               </div>
             </div>
@@ -334,8 +334,8 @@ const ProductsPage: React.FC = () => {
                       className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
                     />
                     <div className="flex justify-between mt-2">
-                      <span className="text-sm text-gray-600">${priceRange[0]}</span>
-                      <span className="text-sm text-gray-600">${priceRange[1]}</span>
+                      <span className="text-sm text-gray-600">Rs. {priceRange[0]}</span>
+                      <span className="text-sm text-gray-600">Rs. {priceRange[1]}</span>
                     </div>
                   </div>
                 </div>
@@ -394,7 +394,7 @@ const ProductsPage: React.FC = () => {
                       
                       <div className="flex justify-between items-center">
                         <div className="flex items-baseline">
-                          <span className="text-lg font-bold text-gray-800">${product.price.toFixed(2)}</span>
+                          <span className="text-lg font-bold text-gray-800">Rs. {product.price.toFixed(2)}</span>
                         </div>
                         <button
                           onClick={() => handleAddToCart(product)}

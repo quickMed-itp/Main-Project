@@ -173,7 +173,7 @@ const CartManagement: React.FC = () => {
                   />
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg">{item.productId.name}</h3>
-                    <p className="text-gray-600 mt-1">${item.productId.price.toFixed(2)}</p>
+                    <p className="text-gray-600 mt-1">Rs. {item.productId.price.toFixed(2)}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <button
                         onClick={() => updateQuantity(item._id, Math.max(1, item.quantity - 1))}
@@ -200,7 +200,7 @@ const CartManagement: React.FC = () => {
                     >
                       <Trash2 size={20} />
                     </button>
-                    <span className="font-semibold text-lg">${(item.productId.price * item.quantity).toFixed(2)}</span>
+                    <span className="font-semibold text-lg">Rs. {(item.productId.price * item.quantity).toFixed(2)}</span>
                   </div>
                 </div>
               ))}
@@ -212,19 +212,19 @@ const CartManagement: React.FC = () => {
           <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
           <div className="flex justify-between mb-2">
             <span>Subtotal</span>
-            <span>${subtotal.toFixed(2)}</span>
+            <span>Rs. {subtotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between mb-2">
             <span>Shipping</span>
-            <span>{SHIPPING_COST === 0 ? 'Free' : `$${SHIPPING_COST.toFixed(2)}`}</span>
+            <span>{SHIPPING_COST === 0 ? 'Free' : `Rs. ${SHIPPING_COST.toFixed(2)}`}</span>
           </div>
           <div className="flex justify-between mb-4">
             <span>Tax</span>
-            <span>${tax.toFixed(2)}</span>
+            <span>Rs. {tax.toFixed(2)}</span>
           </div>
           <div className="flex justify-between font-bold text-lg mb-6">
             <span>Total</span>
-            <span>${total.toFixed(2)}</span>
+            <span>Rs. {total.toFixed(2)}</span>
           </div>
           <button
             onClick={() => navigate('/payment')}

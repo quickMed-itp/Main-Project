@@ -206,7 +206,7 @@ const ProductDetailsPage = () => {
               </div>
               <div className="flex items-baseline mt-4">
                 <span className="text-2xl font-bold text-gray-900">
-                  ${product.price.toFixed(2)}
+                  Rs. {product.price.toFixed(2)}
                 </span>
               </div>
             </div>
@@ -220,7 +220,7 @@ const ProductDetailsPage = () => {
               </div>
               <div className="flex items-center text-sm text-gray-600">
                 <Truck size={18} className="text-primary-500 mr-2" />
-                <span>Free Delivery on orders above $50</span>
+                <span>Free Delivery on orders above Rs. 50</span>
               </div>
               <div className="flex items-center text-sm text-gray-600">
                 <RefreshCw size={18} className="text-accent-500 mr-2" />

@@ -229,6 +229,10 @@ const PaymentPage: React.FC = () => {
     } else if (e.target.name === 'expiry') {
       const formattedExpiry = formatExpiryDate(e.target.value);
       setCard({ ...card, expiry: formattedExpiry });
+    } else if (e.target.name === 'cvv') {
+      // Only allow numbers and max 3 digits
+      const cvv = e.target.value.replace(/\D/g, '').slice(0, 3);
+      setCard({ ...card, cvv });
     } else {
       setCard({ ...card, [e.target.name]: e.target.value });
     }
@@ -267,8 +271,8 @@ const PaymentPage: React.FC = () => {
 
     if (!card.cvv) {
       newErrors.cardCvv = 'CVV is required';
-    } else if (!/^[0-9]{3,4}$/.test(card.cvv)) {
-      newErrors.cardCvv = 'Invalid CVV';
+    } else if (!/^[0-9]{3}$/.test(card.cvv)) {
+      newErrors.cardCvv = 'CVV must be exactly 3 digits';
     }
 
     if (!selectedAddress) {
@@ -568,7 +572,10 @@ const PaymentPage: React.FC = () => {
                     value={card.cvv}
                     onChange={handleCardChange}
                     className={`w-full border rounded px-3 py-2 ${errors.cardCvv ? 'border-red-500' : ''}`}
-                    maxLength={4}
+                    maxLength={3}
+                    pattern="[0-9]*"
+                    inputMode="numeric"
+                    placeholder="***"
                     required
                   />
                   {errors.cardCvv && <p className="text-red-500 text-sm mt-1">{errors.cardCvv}</p>}
