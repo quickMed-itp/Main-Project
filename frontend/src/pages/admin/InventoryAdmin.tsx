@@ -144,10 +144,14 @@ const InventoryAdmin = () => {
     
     try {
       const response = await axios.post('/batches', newBatch);
-      // Update the batches state with the new batch
-      setBatches(batches.map(b => 
-        b._id === response.data.data.batch._id ? response.data.data.batch : b
-      ));
+      const newBatchData = response.data.data.batch;
+      // Try to populate productId from products array
+      const product = products.find(p => p._id === newBatchData.productId);
+      const batchWithProduct = product
+        ? { ...newBatchData, productId: product }
+        : newBatchData;
+
+      setBatches([batchWithProduct, ...batches]);
       setIsAddBatchModalOpen(false);
       setNewBatch({});
     } catch (error) {
@@ -162,8 +166,14 @@ const InventoryAdmin = () => {
     
     try {
       const response = await axios.patch(`/batches/${selectedBatch._id}`, editedBatch);
+      const updatedBatchData = response.data.data.batch;
+      const product = products.find(p => p._id === updatedBatchData.productId);
+      const batchWithProduct = product
+        ? { ...updatedBatchData, productId: product }
+        : updatedBatchData;
+
       setBatches(batches.map(b => 
-        b._id === selectedBatch._id ? response.data.data.batch : b
+        b._id === selectedBatch._id ? batchWithProduct : b
       ));
       setIsEditModalOpen(false);
       setEditedBatch({});
@@ -183,7 +193,7 @@ const InventoryAdmin = () => {
     
     try {
       const response = await axios.delete(`/batches/${selectedBatch._id}`);
-      if (response.status === 200) {
+      if (response.status === 204) {
         setBatches(prevBatches => prevBatches.filter(batch => batch._id !== selectedBatch._id));
         setIsDeleteModalOpen(false);
         setSelectedBatch(null);

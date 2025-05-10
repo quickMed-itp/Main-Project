@@ -10,7 +10,7 @@ const signToken = (id) => {
 
 exports.signup = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role, doctorId, pharmacyRegNumber, address, phone } = req.body;
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -19,7 +19,24 @@ exports.signup = async (req, res, next) => {
       });
     }
 
-    const newUser = await User.create({ name, email, password });
+    // Validate required fields for doctor/pharmacy
+    if (role === 'doctor' && !doctorId) {
+      return res.status(400).json({ status: 'fail', message: 'Doctor ID is required for doctor registration' });
+    }
+    if (role === 'pharmacy' && (!pharmacyRegNumber || !address)) {
+      return res.status(400).json({ status: 'fail', message: 'Pharmacy registration number and address are required for pharmacy registration' });
+    }
+
+    const newUser = await User.create({
+      name,
+      email,
+      password,
+      role: role || 'user',
+      doctorId: role === 'doctor' ? doctorId : undefined,
+      pharmacyRegNumber: role === 'pharmacy' ? pharmacyRegNumber : undefined,
+      address: address || undefined,
+      phone: phone || undefined
+    });
     const token = signToken(newUser._id);
 
     res.status(201).json({
@@ -30,7 +47,11 @@ exports.signup = async (req, res, next) => {
           id: newUser._id,
           name: newUser.name,
           email: newUser.email,
-          role: newUser.role
+          role: newUser.role,
+          doctorId: newUser.doctorId,
+          pharmacyRegNumber: newUser.pharmacyRegNumber,
+          address: newUser.address,
+          phone: newUser.phone
         }
       }
     });
@@ -58,6 +79,14 @@ exports.login = async (req, res, next) => {
       return res.status(401).json({
         status: 'fail',
         message: 'Incorrect email or password'
+      });
+    }
+
+    // Prevent blocked users from logging in
+    if (user.status === 'blocked') {
+      return res.status(403).json({
+        status: 'fail',
+        message: 'Your account is blocked. Please contact admin to activate your account.'
       });
     }
 
