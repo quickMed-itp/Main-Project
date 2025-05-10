@@ -93,23 +93,52 @@ const OrdersAdmin = () => {
     try {
       setError(null);
       const token = localStorage.getItem('pharmacy_token');
-      const response = await axios.patch(
-        `${API_BASE_URL}/orders/${orderId}`,
-        { status: newStatus },
-        {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
+
+      // If the new status is 'shipped', we need to update the stock levels
+      if (newStatus === 'shipped') {
+        // First update the order status
+        const response = await axios.patch(
+          `${API_BASE_URL}/orders/${orderId}`,
+          { 
+            status: newStatus,
+            updateStock: true // Add this flag to indicate stock should be updated
+          },
+          {
+            headers: { 
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
           }
+        );
+        
+        if (response.data.status === 'success') {
+          // Update the order in the local state
+          setOrders(orders.map(order => 
+            order._id === orderId ? { ...order, status: newStatus } : order
+          ));
+          setModalOpen(false);
+          setSelectedOrder(null);
         }
-      );
-      
-      if (response.data.status === 'success') {
-        setOrders(orders.map(order => 
-          order._id === orderId ? { ...order, status: newStatus } : order
-        ));
-        setModalOpen(false);
-        setSelectedOrder(null);
+      } else {
+        // For other status updates, proceed as normal
+        const response = await axios.patch(
+          `${API_BASE_URL}/orders/${orderId}`,
+          { status: newStatus },
+          {
+            headers: { 
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (response.data.status === 'success') {
+          setOrders(orders.map(order => 
+            order._id === orderId ? { ...order, status: newStatus } : order
+          ));
+          setModalOpen(false);
+          setSelectedOrder(null);
+        }
       }
     } catch (err) {
       const error = err as AxiosError<ApiError>;
@@ -195,7 +224,7 @@ const OrdersAdmin = () => {
 
   if (error) {
     return (
-      <div className="p-6">
+        <div className="p-6">
         <h1 className="text-3xl font-bold mb-6 text-blue-800">Orders Management</h1>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-rose-600">{error}</div>
@@ -454,8 +483,8 @@ const OrdersAdmin = () => {
           </div>
         </div>
       )}
-    </div>
-  );
+        </div>
+    );
 };
 
 export default OrdersAdmin;

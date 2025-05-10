@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Edit2, Trash2, X, Plus, Package, Tag, DollarSign, TrendingUp } from 'lucide-react';
+import { Search, Edit2, Trash2, X, Plus, Package, Tag, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -57,6 +57,11 @@ const ProductsAdmin: React.FC = () => {
     totalValue: 0,
     lowStockProducts: 0
   });
+  const [alertStatus, setAlertStatus] = useState<{ type: 'success' | 'error' | 'info' | null; message: string }>({
+    type: null,
+    message: ''
+  });
+  const [previousOutOfStockProducts, setPreviousOutOfStockProducts] = useState<Set<string>>(new Set());
 
   // Get auth token
   const getAuthToken = () => {
@@ -75,15 +80,112 @@ const ProductsAdmin: React.FC = () => {
     }
   }, [isAuthenticated, isAdmin, navigate, logout]);
 
-  // Fetch products
+  // Add function to update stock from first batch
+  const updateStockFromFirstBatch = async (productId: string, quantity: number) => {
+    try {
+      const token = getAuthToken();
+      await axios.patch(`http://localhost:5000/api/v1/products/${productId}/batch-stock`, {
+        quantity: -quantity // Negative quantity to reduce stock
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+    } catch (error) {
+      console.error('Error updating product batch stock:', error);
+    }
+  };
+
+  // Add function to check if out of stock products have changed
+  const hasOutOfStockProductsChanged = (currentOutOfStock: Product[]) => {
+    const currentIds = new Set(currentOutOfStock.map((p: Product) => p._id));
+    const previousIds = previousOutOfStockProducts;
+
+    // Check if sets are different
+    if (currentIds.size !== previousIds.size) return true;
+    
+    // Check if any products are different
+    for (const id of currentIds) {
+      if (!previousIds.has(id)) return true;
+    }
+    
+    return false;
+  };
+
+  // Modify checkShippedOrdersAndUpdateStock to use batch stock update
+  const checkShippedOrdersAndUpdateStock = async () => {
+    try {
+      const token = getAuthToken();
+      const response = await axios.get('http://localhost:5000/api/v1/orders', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        params: {
+          status: 'shipped',
+          updatedAt: new Date(Date.now() - 5 * 60 * 1000).toISOString() // Last 5 minutes
+        }
+      });
+
+      const shippedOrders = response.data.data.orders;
+      let stockChanged = false;
+      
+      // Update stock for each shipped order
+      for (const order of shippedOrders) {
+        for (const item of order.items) {
+          // Update stock from first batch
+          await updateStockFromFirstBatch(item.productId, item.quantity);
+          stockChanged = true;
+        }
+      }
+
+      // If stock changed, check for out of stock products
+      if (stockChanged) {
+        const outOfStockProducts = products.filter((product: Product) => product.totalStock === 0);
+        
+        // Only send alert if the out of stock products have changed
+        if (outOfStockProducts.length > 0 && hasOutOfStockProductsChanged(outOfStockProducts)) {
+          try {
+            await axios.post('http://localhost:5000/api/v1/products/low-stock-alert', {
+              products: outOfStockProducts
+            }, {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            });
+            // Update the previous out of stock products set
+            setPreviousOutOfStockProducts(new Set(outOfStockProducts.map((p: Product) => p._id)));
+            
+            setAlertStatus({
+              type: 'success',
+              message: `Alert sent for ${outOfStockProducts.length} out of stock products`
+            });
+          } catch (error) {
+            console.error('Error sending out of stock alert:', error);
+            setAlertStatus({
+              type: 'error',
+              message: 'Failed to send out of stock alert'
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking shipped orders:', error);
+    }
+  };
+
+  // Modify fetchProducts to include stock updates
   const fetchProducts = async () => {
     if (!isAuthenticated || !isAdmin) return;
 
     try {
-      console.log(getAuthToken());
       setLoading(true);
       setError(null);
       const token = getAuthToken();
+
+      // First check shipped orders and update stock
+      await checkShippedOrdersAndUpdateStock();
+
+      // Then fetch updated products
       const response = await axios.get('http://localhost:5000/api/v1/products', {
         headers: {
           Authorization: `Bearer ${token}`
@@ -105,7 +207,7 @@ const ProductsAdmin: React.FC = () => {
       if (axios.isAxiosError(error)) {
         setError(error.response?.data?.message || 'Error fetching products');
         if (error.response?.status === 401) {
-          logout(); // Clear auth before navigating
+          logout();
           navigate('/signin');
         }
       }
@@ -114,9 +216,13 @@ const ProductsAdmin: React.FC = () => {
     }
   };
 
+  // Add interval to check for shipped orders and update stock
   useEffect(() => {
     if (isAuthenticated && isAdmin) {
       fetchProducts();
+      // Check for shipped orders every minute
+      const interval = setInterval(checkShippedOrdersAndUpdateStock, 60 * 1000);
+      return () => clearInterval(interval);
     }
   }, [isAuthenticated, isAdmin]);
 
@@ -294,6 +400,57 @@ const ProductsAdmin: React.FC = () => {
     }
   };
 
+  // Modify handleSendLowStockAlert to check for out of stock products
+  const handleSendLowStockAlert = async () => {
+    try {
+      setLoading(true);
+      setAlertStatus({ type: null, message: '' });
+      const token = getAuthToken();
+      
+      const outOfStockProducts = products.filter((product: Product) => product.totalStock === 0);
+      
+      if (outOfStockProducts.length === 0) {
+        setAlertStatus({
+          type: 'error',
+          message: 'No out of stock products found'
+        });
+        return;
+      }
+
+      // Only send if the list has changed
+      if (hasOutOfStockProductsChanged(outOfStockProducts)) {
+        await axios.post('http://localhost:5000/api/v1/products/low-stock-alert', {
+          products: outOfStockProducts
+        }, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        // Update the previous out of stock products set
+        setPreviousOutOfStockProducts(new Set(outOfStockProducts.map((p: Product) => p._id)));
+
+        setAlertStatus({
+          type: 'success',
+          message: `Alert sent for ${outOfStockProducts.length} out of stock products`
+        });
+      } else {
+        setAlertStatus({
+          type: 'info',
+          message: 'No changes in out of stock products since last alert'
+        });
+      }
+    } catch (error) {
+      console.error('Error sending out of stock alert:', error);
+      setAlertStatus({
+        type: 'error',
+        message: 'Failed to send out of stock alert'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Products Management</h1>
@@ -339,7 +496,7 @@ const ProductsAdmin: React.FC = () => {
           </div>
         </div>
 
-        {/* Low Stock Products Card */}
+        {/* Low Stock Products Card with Alert Button */}
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -350,8 +507,27 @@ const ProductsAdmin: React.FC = () => {
               <Tag className="w-6 h-6 text-amber-600" />
             </div>
           </div>
+          {summary.lowStockProducts > 0 && (
+            <button
+              onClick={handleSendLowStockAlert}
+              className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors"
+              disabled={loading}
+            >
+              <AlertTriangle size={18} />
+              {loading ? 'Sending...' : 'Send Alert'}
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Alert Status Message */}
+      {alertStatus.type && (
+        <div className={`mb-4 p-4 rounded-md ${
+          alertStatus.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+        }`}>
+          {alertStatus.message}
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">

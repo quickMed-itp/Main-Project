@@ -6,6 +6,11 @@ const batchSchema = new mongoose.Schema({
     ref: 'Product',
     required: true
   },
+  supplierId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Supplier',
+    required: [true, 'Supplier is required']
+  },
   batchNumber: {
     type: String,
     required: [true, 'Batch number is required'],
@@ -24,15 +29,20 @@ const batchSchema = new mongoose.Schema({
     required: [true, 'Quantity is required'],
     min: [0, 'Quantity cannot be negative']
   },
+  remainingQuantity: {
+    type: Number,
+    required: [true, 'Remaining quantity is required'],
+    min: [0, 'Remaining quantity cannot be negative']
+  },
   costPrice: {
     type: Number,
     required: [true, 'Cost price is required'],
-    min: [0, 'Cost price cannot be negative']
+    min: [0.01, 'Cost price must be at least 0.01']
   },
   sellingPrice: {
     type: Number,
     required: [true, 'Selling price is required'],
-    min: [0, 'Selling price cannot be negative']
+    min: [0.01, 'Selling price must be at least 0.01']
   },
   status: {
     type: String,
@@ -44,13 +54,19 @@ const batchSchema = new mongoose.Schema({
 // Index for faster queries
 batchSchema.index({ productId: 1, batchNumber: 1 }, { unique: true });
 batchSchema.index({ expiryDate: 1 });
+batchSchema.index({ supplierId: 1 });
 
-// Middleware to check expiry date
+// Middleware to check expiry date and remaining quantity
 batchSchema.pre('save', function(next) {
   if (this.manufacturingDate >= this.expiryDate) {
     next(new Error('Expiry date must be after manufacturing date'));
   }
+  if (this.remainingQuantity > this.quantity) {
+    this.remainingQuantity = this.quantity;
+  }
   next();
 });
 
-module.exports = mongoose.model('Batch', batchSchema); 
+const Batch = mongoose.model('Batch', batchSchema);
+
+module.exports = Batch; 
