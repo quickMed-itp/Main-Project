@@ -16,4 +16,5 @@ router.get('/prescriptions', protect, isAdmin, generatePrescriptionReport);
 router.get('/feedback', protect, isAdmin, generateFeedbackReport);
 router.get('/inventory', protect, isAdmin, generateInventoryReport);
 
+
 module.exports = router; 
