@@ -21,7 +21,14 @@
     "mongoose": "^8.0.3",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.2",
+<<<<<<< HEAD
     "nodemon": "^3.0.2",
     "pdfkit": "^0.17.1"
+=======
+
+    "nodemon": "^3.0.2",
+    "pdfkit": "^0.17.1"
+
+>>>>>>> 7006ab2d8cdafafb4ea3681983b8e0c550c7c7b6
   }
 }

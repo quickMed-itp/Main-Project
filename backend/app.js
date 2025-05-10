@@ -19,6 +19,9 @@ const supplierRouter = require('./routes/supplierRoutes');
 const supportRouter = require('./routes/supportRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 
+const reportRoutes = require('./routes/reportRoutes');
+
+
 const globalErrorHandler = require('./utils/errorHandler');
 
 const app = express();
@@ -69,6 +72,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/v1/suppliers', supplierRouter);
 app.use('/api/v1/support', supportRouter);
 app.use('/api/v1/reports', reportRoutes);
+
+app.use('/api/v1/reports', reportRoutes);
+
 
 // 404 handler
 app.use((req, res, next) => {

@@ -16,4 +16,8 @@ router.get('/prescriptions', protect, isAdmin, generatePrescriptionReport);
 router.get('/feedback', protect, isAdmin, generateFeedbackReport);
 router.get('/inventory', protect, isAdmin, generateInventoryReport);
 
+<<<<<<< HEAD
 module.exports = router;
+=======
+module.exports = router; 
+>>>>>>> 7006ab2d8cdafafb4ea3681983b8e0c550c7c7b6
