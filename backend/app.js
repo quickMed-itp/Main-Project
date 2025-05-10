@@ -12,6 +12,11 @@ const uploadRouter = require('./routes/prescriptionRoutes');
 const contactRouter = require('./routes/contactRoutes');
 const feedbackRouter = require('./routes/feedbackRoutes');
 const batchRoutes = require('./routes/batchRoutes');
+const medicineRouter = require('./routes/medicineRoutes');
+const userRoutes = require('./routes/userRoutes');
+const supplierRouter = require('./routes/supplierRoutes');
+const supportRouter = require('./routes/supportRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 const globalErrorHandler = require('./utils/errorHandler');
 
@@ -47,6 +52,19 @@ app.use('/api/v1/upload', uploadRouter);
 app.use('/api/v1/contact', contactRouter);
 app.use('/api/v1/feedback', feedbackRouter);
 app.use('/api/v1/batches', batchRoutes);
+app.use('/api/v1/medicines', medicineRouter);
+app.use('/api/users', userRoutes);
+app.use('/api/v1/suppliers', supplierRouter);
+app.use('/api/v1/support', supportRouter);
+app.use('/api/v1/reports', reportRoutes);
+
+// 404 handler
+app.use((req, res, next) => {
+  res.status(404).json({
+    status: 'error',
+    message: `Can't find ${req.originalUrl} on this server!`
+  });
+});
 
 // Error handling
 app.use(globalErrorHandler);
