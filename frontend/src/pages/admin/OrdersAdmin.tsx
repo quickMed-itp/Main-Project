@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios, { AxiosError } from 'axios';
 import { X, Trash2, Eye, Package, Truck, CheckCircle, AlertCircle, PenSquare } from 'lucide-react';
+import { useAuth } from '../../contexts/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
 
@@ -46,25 +48,34 @@ interface ApiError {
 }
 
 const OrdersAdmin = () => {
+  const { isAuthenticated, isAdmin, logout } = useAuth();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
-
   useEffect(() => {
+    if (!isAuthenticated || !isAdmin) {
+      logout();
+      navigate('/signin');
+      return;
+    }
     fetchOrders();
-  }, []);
+  }, [isAuthenticated, isAdmin, navigate, logout]);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem('pharmacy_token');
+
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
 
       console.log('Fetching orders with token:', token);
       
@@ -86,7 +97,13 @@ const OrdersAdmin = () => {
     } catch (err) {
       const error = err as AxiosError<ApiError>;
       console.error('Error fetching orders:', error);
-      setError(error.response?.data?.message || 'Failed to fetch orders. Please try again later.');
+      if (error.response?.status === 403) {
+        setError('You do not have permission to access this page');
+        logout();
+        navigate('/signin');
+      } else {
+        setError(error.response?.data?.message || 'Failed to fetch orders. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }
