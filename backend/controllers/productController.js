@@ -2,6 +2,37 @@ const Product = require('../models/Product');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const mongoose = require('mongoose');
+const Order = require('../models/Order');
+
+// Helper function to calculate total stock from batches
+const calculateTotalStock = async (productId) => {
+  const product = await Product.findById(productId).populate('batches');
+  if (!product) return 0;
+
+  // Sum up all valid batches (not expired and active)
+  const totalStock = product.batches.reduce((sum, batch) => {
+    if (batch.status === 'active' && new Date(batch.expiryDate) > new Date()) {
+      return sum + (batch.quantity || 0);
+    }
+    return sum;
+  }, 0);
+
+  // Get total ordered quantity
+  const orders = await Order.find({
+    'items.product': productId,
+    status: { $in: ['pending', 'processing', 'shipped'] }
+  });
+
+  const orderedQuantity = orders.reduce((sum, order) => {
+    const orderItem = order.items.find(item => item.product.toString() === productId.toString());
+    return sum + (orderItem ? orderItem.quantity : 0);
+  }, 0);
+
+  // Update product with calculated stock
+  await Product.findByIdAndUpdate(productId, { totalStock: totalStock - orderedQuantity });
+
+  return totalStock - orderedQuantity;
+};
 
 // Validation middleware
 const validateProduct = (req, res, next) => {
@@ -69,6 +100,11 @@ exports.getAllProducts = catchAsync(async (req, res) => {
       options: { sort: { manufacturingDate: -1 } }
     })
     .sort({ updatedAt: -1 });
+
+  // Update stock for each product
+  for (const product of products) {
+    await calculateTotalStock(product._id);
+  }
   
   res.status(200).json({
     status: 'success',
@@ -91,6 +127,9 @@ exports.getProduct = catchAsync(async (req, res, next) => {
   if (!product) {
     return next(new AppError('No product found with that ID', 404));
   }
+
+  // Update stock
+  await calculateTotalStock(product._id);
   
   res.status(200).json({
     status: 'success',
@@ -101,7 +140,6 @@ exports.getProduct = catchAsync(async (req, res, next) => {
 });
 
 // Create new product
-// Create new product
 exports.createProduct = catchAsync(async (req, res, next) => {
   const files = req.files;
   
@@ -111,7 +149,8 @@ exports.createProduct = catchAsync(async (req, res, next) => {
 
   const productData = {
     ...req.body,
-    mainImage: files.mainImage[0].path
+    mainImage: files.mainImage[0].path,
+    totalStock: 0 // Initialize total stock
   };
 
   // Handle optional subImages
@@ -152,6 +191,9 @@ exports.updateProduct = catchAsync(async (req, res, next) => {
   if (!product) {
     return next(new AppError('No product found with that ID', 404));
   }
+
+  // Update stock after product update
+  await calculateTotalStock(product._id);
   
   res.status(200).json({
     status: 'success',
