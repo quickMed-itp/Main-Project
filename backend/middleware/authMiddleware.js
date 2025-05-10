@@ -62,8 +62,6 @@ exports.isAdmin = async (req, res, next) => {
       message: 'Error checking admin status'
     });
   }
-<<<<<<< HEAD
+
 };
-=======
-}; 
->>>>>>> 7006ab2d8cdafafb4ea3681983b8e0c550c7c7b6
+

@@ -19,7 +19,6 @@ const supplierRouter = require('./routes/supplierRoutes');
 const supportRouter = require('./routes/supportRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 
-const reportRoutes = require('./routes/reportRoutes');
 
 
 const globalErrorHandler = require('./utils/errorHandler');
