@@ -1,140 +1,115 @@
 import React, { useState } from 'react';
-import { Download, FileText, BarChart2, TrendingUp, Users, ShoppingBag } from 'lucide-react';
-
-interface Report {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  downloadUrl: string;
-}
+import axios from 'axios';
+import { Download, Users, ShoppingCart, FileText, MessageSquare, Package } from 'lucide-react';
 
 const ReportsAdmin = () => {
-  const [selectedReport, setSelectedReport] = useState<string | null>(null);
+  const [loading, setLoading] = useState<string | null>(null);
 
-  const reports: Report[] = [
-    {
-      id: 'sales',
-      title: 'Sales Report',
-      description: 'Monthly sales analysis and revenue reports',
-      icon: <TrendingUp className="w-6 h-6" />,
-      downloadUrl: '/api/reports/sales'
-    },
-    {
-      id: 'inventory',
-      title: 'Inventory Report',
-      description: 'Current stock levels and inventory status',
-      icon: <BarChart2 className="w-6 h-6" />,
-      downloadUrl: '/api/reports/inventory'
-    },
-    {
-      id: 'customers',
-      title: 'Customer Report',
-      description: 'Customer demographics and purchase history',
-      icon: <Users className="w-6 h-6" />,
-      downloadUrl: '/api/reports/customers'
-    },
-    {
-      id: 'orders',
-      title: 'Order Report',
-      description: 'Order statistics and delivery performance',
-      icon: <ShoppingBag className="w-6 h-6" />,
-      downloadUrl: '/api/reports/orders'
-    }
-  ];
-
-  const handleDownload = async (reportId: string) => {
+  const handleDownload = async (reportType: string) => {
     try {
-      const token = localStorage.getItem('pharmacy_token');
-      const response = await fetch(`/api/reports/${reportId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
+      setLoading(reportType);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_BASE_URL}/reports/${reportType}`,
+        {
+          responseType: 'blob',
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('pharmacy_token')}`
+          }
         }
-      });
+      );
+
+      // Create a blob from the PDF Stream
+      const file = new Blob([response.data], { type: 'application/pdf' });
       
-      if (!response.ok) throw new Error('Failed to download report');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${reportId}-report.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Create a link element and trigger download
+      const fileURL = window.URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = fileURL;
+      link.download = `${reportType}-report.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(fileURL);
     } catch (error) {
-      console.error('Error downloading report:', error);
-      alert('Failed to download report. Please try again.');
+      console.error(`Error downloading ${reportType} report:`, error);
+      alert(`Failed to download ${reportType} report. Please try again.`);
+    } finally {
+      setLoading(null);
     }
   };
 
+  const reports = [
+    {
+      type: 'customers',
+      title: 'Customer Report',
+      description: 'Download a detailed report of all registered customers',
+      icon: <Users className="h-6 w-6" />
+    },
+    {
+      type: 'orders',
+      title: 'Order Report',
+      description: 'Download a comprehensive report of all orders',
+      icon: <ShoppingCart className="h-6 w-6" />
+    },
+    {
+      type: 'prescriptions',
+      title: 'Prescription Report',
+      description: 'Download a report of all prescription uploads',
+      icon: <FileText className="h-6 w-6" />
+    },
+    {
+      type: 'feedback',
+      title: 'Feedback Report',
+      description: 'Download a report of all customer feedback',
+      icon: <MessageSquare className="h-6 w-6" />
+    },
+    {
+      type: 'inventory',
+      title: 'Inventory Report',
+      description: 'Download a detailed inventory status report',
+      icon: <Package className="h-6 w-6" />
+    }
+  ];
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Reports</h1>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8 text-center text-teal-800">Reports Dashboard</h1>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {reports.map(report => (
+        {reports.map((report) => (
           <div
-            key={report.id}
-            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer"
-            onClick={() => setSelectedReport(report.id)}
+            key={report.type}
+            className="bg-white rounded-lg shadow-lg p-6 border border-teal-100 hover:shadow-xl transition-shadow duration-300"
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-primary-100 rounded-lg text-primary-600">
+                <div className="p-2 bg-teal-100 rounded-lg text-teal-600">
                   {report.icon}
                 </div>
-                <h3 className="text-lg font-semibold">{report.title}</h3>
+                <h2 className="text-xl font-semibold text-teal-800">{report.title}</h2>
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDownload(report.id);
-                }}
-                className="p-2 text-gray-600 hover:text-primary-600"
-              >
-                <Download className="w-5 h-5" />
-              </button>
             </div>
-            <p className="text-gray-600">{report.description}</p>
+            
+            <p className="text-gray-600 mb-4">{report.description}</p>
+            
+            <button
+              onClick={() => handleDownload(report.type)}
+              disabled={loading === report.type}
+              className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-white font-medium transition-colors duration-300 ${
+                loading === report.type
+                  ? 'bg-teal-400 cursor-not-allowed'
+                  : 'bg-teal-600 hover:bg-teal-700'
+              }`}
+            >
+              <Download className="h-5 w-5" />
+              <span>
+                {loading === report.type ? 'Downloading...' : 'Download Report'}
+              </span>
+            </button>
           </div>
         ))}
       </div>
-
-      {/* Report Preview Modal */}
-      {selectedReport && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl h-[80vh] flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">
-                {reports.find(r => r.id === selectedReport)?.title} Preview
-              </h2>
-              <button
-                onClick={() => setSelectedReport(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <FileText className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="flex-1 bg-gray-100 rounded-lg p-4 overflow-auto">
-              <iframe
-                src={`/api/reports/${selectedReport}/preview`}
-                className="w-full h-full"
-                title="Report Preview"
-              />
-            </div>
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => handleDownload(selectedReport)}
-                className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 flex items-center space-x-2"
-              >
-                <Download className="w-5 h-5" />
-                <span>Download PDF</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
