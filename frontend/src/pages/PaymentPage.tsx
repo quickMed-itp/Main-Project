@@ -442,7 +442,7 @@ const PaymentPage: React.FC = () => {
       localStorage.setItem('currentOrder', JSON.stringify(trackingData));
 
       // Navigate to order tracking page
-      navigate('/order-tracking');
+      navigate('/track-order');
     } catch (error) {
       console.error('Order creation failed:', error);
       console.error('Error details:', {

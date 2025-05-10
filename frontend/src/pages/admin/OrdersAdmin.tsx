@@ -93,23 +93,52 @@ const OrdersAdmin = () => {
     try {
       setError(null);
       const token = localStorage.getItem('pharmacy_token');
-      const response = await axios.patch(
-        `${API_BASE_URL}/orders/${orderId}`,
-        { status: newStatus },
-        {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
+
+      // If the new status is 'shipped', we need to update the stock levels
+      if (newStatus === 'shipped') {
+        // First update the order status
+        const response = await axios.patch(
+          `${API_BASE_URL}/orders/${orderId}`,
+          { 
+            status: newStatus,
+            updateStock: true // Add this flag to indicate stock should be updated
+          },
+          {
+            headers: { 
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
           }
+        );
+        
+        if (response.data.status === 'success') {
+          // Update the order in the local state
+          setOrders(orders.map(order => 
+            order._id === orderId ? { ...order, status: newStatus } : order
+          ));
+          setModalOpen(false);
+          setSelectedOrder(null);
         }
-      );
-      
-      if (response.data.status === 'success') {
-        setOrders(orders.map(order => 
-          order._id === orderId ? { ...order, status: newStatus } : order
-        ));
-        setModalOpen(false);
-        setSelectedOrder(null);
+      } else {
+        // For other status updates, proceed as normal
+        const response = await axios.patch(
+          `${API_BASE_URL}/orders/${orderId}`,
+          { status: newStatus },
+          {
+            headers: { 
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (response.data.status === 'success') {
+          setOrders(orders.map(order => 
+            order._id === orderId ? { ...order, status: newStatus } : order
+          ));
+          setModalOpen(false);
+          setSelectedOrder(null);
+        }
       }
     } catch (err) {
       const error = err as AxiosError<ApiError>;
@@ -164,30 +193,30 @@ const OrdersAdmin = () => {
   const getStatusColor = (status: Order['status']) => {
     switch (status) {
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-amber-100 text-amber-800 border-amber-200';
       case 'processing':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'shipped':
-        return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+        return 'bg-teal-100 text-teal-800 border-teal-200';
       case 'delivered':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-rose-100 text-rose-800 border-rose-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const formatPrice = (amount: number) => {
-    return `Rs. ${amount.toFixed(2)}`;
+    return `Rs ${amount.toFixed(2)}`;
   };
 
   if (loading) {
     return (
       <div className="p-6">
-        <h1 className="text-3xl font-bold mb-6 text-gray-800">Orders Management</h1>
+        <h1 className="text-3xl font-bold mb-6 text-blue-800">Orders Management</h1>
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-center text-gray-600">Loading orders...</div>
+          <div className="text-center text-blue-600">Loading orders...</div>
         </div>
       </div>
     );
@@ -195,10 +224,10 @@ const OrdersAdmin = () => {
 
   if (error) {
     return (
-      <div className="p-6">
-        <h1 className="text-3xl font-bold mb-6 text-gray-800">Orders Management</h1>
+        <div className="p-6">
+        <h1 className="text-3xl font-bold mb-6 text-blue-800">Orders Management</h1>
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-red-600">{error}</div>
+          <div className="text-rose-600">{error}</div>
           <button 
             onClick={fetchOrders}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -212,26 +241,26 @@ const OrdersAdmin = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">Orders Management</h1>
+      <h1 className="text-3xl font-bold mb-6 text-blue-800">Orders Management</h1>
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {orders.length === 0 ? (
-          <div className="text-center text-gray-500 p-6">No orders found</div>
+          <div className="text-center text-blue-500 p-6">No orders found</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-blue-200">
+              <thead className="bg-gradient-to-r from-blue-500 to-teal-600">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Order ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Customer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Total</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-blue-100">
                 {orders.map(order => (
-                  <tr key={order._id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={order._id} className="hover:bg-blue-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {order.orderNumber}
                     </td>
@@ -239,7 +268,7 @@ const OrdersAdmin = () => {
                       <div className="text-sm font-medium text-gray-900">{order.userId.name}</div>
                       <div className="text-sm text-gray-500">{order.userId.email}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-emerald-600">
                       {formatPrice(order.totalAmount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -263,14 +292,14 @@ const OrdersAdmin = () => {
                       </button>
                       <button
                         onClick={() => { setSelectedOrder(order); setModalOpen(true); }}
-                        className="text-indigo-600 hover:text-indigo-900 transition-colors"
+                        className="text-teal-600 hover:text-teal-900 transition-colors"
                         title="Update Status"
                       >
                         <PenSquare size={18} />
                       </button>
                       <button
                         onClick={() => { setSelectedOrder(order); setDeleteModalOpen(true); }}
-                        className="text-red-600 hover:text-red-900 transition-colors"
+                        className="text-rose-600 hover:text-rose-900 transition-colors"
                         title="Delete Order"
                       >
                         <Trash2 size={18} />
@@ -454,8 +483,8 @@ const OrdersAdmin = () => {
           </div>
         </div>
       )}
-    </div>
-  );
+        </div>
+    );
 };
 
 export default OrdersAdmin;

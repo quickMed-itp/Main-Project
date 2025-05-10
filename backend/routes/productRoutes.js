@@ -27,7 +27,16 @@ router.patch(
   productController.updateProduct
 );
 
+// Add the new route for updating stock
+router.patch('/:id/stock', productController.updateProductStock);
+
+// Add new route for batch stock update
+router.patch('/:id/batch-stock', productController.updateBatchStock);
+
 // Delete product route
 router.delete('/:id', productController.deleteProduct);
+
+// Low stock alert route
+router.post('/low-stock-alert', productController.sendLowStockAlert);
 
 module.exports = router;

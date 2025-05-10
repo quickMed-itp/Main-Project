@@ -3,6 +3,8 @@ const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
+const { sendLowStockAlert } = require('../utils/emailService');
+const Batch = require('../models/Batch');
 
 // Helper function to calculate total stock from batches
 const calculateTotalStock = async (productId) => {
@@ -223,3 +225,123 @@ exports.deleteProduct = catchAsync(async (req, res, next) => {
     data: null
   });
 });
+
+// Send low stock alert
+exports.sendLowStockAlert = catchAsync(async (req, res) => {
+  const { products } = req.body;
+
+  if (!Array.isArray(products) || products.length === 0) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Invalid or empty products data'
+    });
+  }
+
+  // Filter products with low stock (less than 10)
+  const lowStockProducts = products.filter(product => product.totalStock < 10);
+
+  if (lowStockProducts.length === 0) {
+    return res.status(200).json({
+      status: 'success',
+      message: 'No products with low stock found'
+    });
+  }
+
+  try {
+    await sendLowStockAlert(lowStockProducts);
+    res.status(200).json({
+      status: 'success',
+      message: `Low stock alert sent for ${lowStockProducts.length} products`
+    });
+  } catch (emailError) {
+    console.error('Email sending failed:', emailError);
+    throw new AppError('Failed to send email alert: ' + emailError.message, 500);
+  }
+});
+
+// Update product stock
+exports.updateProductStock = catchAsync(async (req, res, next) => {
+  const { quantity } = req.body;
+  const productId = req.params.id;
+
+  if (!quantity || typeof quantity !== 'number') {
+    return next(new AppError('Please provide a valid quantity', 400));
+  }
+
+  const product = await Product.findById(productId);
+  if (!product) {
+    return next(new AppError('No product found with that ID', 404));
+  }
+
+  // Update total stock
+  product.totalStock = Math.max(0, product.totalStock + quantity);
+  await product.save();
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      product
+    }
+  });
+});
+
+// Add new controller function for batch stock update
+exports.updateBatchStock = async (req, res) => {
+  try {
+    const { quantity } = req.body;
+    const productId = req.params.id;
+
+    if (!quantity || typeof quantity !== 'number') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid quantity provided'
+      });
+    }
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Product not found'
+      });
+    }
+
+    // Find the first batch with available stock
+    const batch = await Batch.findOne({ 
+      productId: productId,
+      remainingQuantity: { $gt: 0 }
+    }).sort({ createdAt: 1 }); // Sort by creation date to get the oldest batch first
+
+    if (!batch) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'No available stock in any batch'
+      });
+    }
+
+    // Calculate how much to reduce from this batch
+    const reduceAmount = Math.min(quantity, batch.remainingQuantity);
+    
+    // Update batch stock
+    batch.remainingQuantity -= reduceAmount;
+    await batch.save();
+
+    // Update product total stock
+    product.totalStock -= reduceAmount;
+    await product.save();
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        product,
+        batch
+      }
+    });
+  } catch (error) {
+    console.error('Error updating batch stock:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error updating batch stock'
+    });
+  }
+};

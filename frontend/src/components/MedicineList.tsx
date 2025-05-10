@@ -34,7 +34,7 @@ const MedicineList: React.FC<MedicineListProps> = ({ medicines, onEdit, onDelete
             <div className="bg-gradient-to-br from-white to-blue-50 shadow-xl rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-blue-200">
-                        <thead className="bg-gradient-to-r from-blue-500 to-indigo-600">
+                        <thead className="bg-gradient-to-r from-blue-500 to-teal-600">
                             <tr>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
                                     Generic Name
@@ -70,16 +70,16 @@ const MedicineList: React.FC<MedicineListProps> = ({ medicines, onEdit, onDelete
                                             {medicine.medicineType}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
-                                        ${medicine.price.toFixed(2)}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-600">
+                                        Rs {medicine.price.toFixed(2)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
                                             medicine.quantity > 10 
-                                                ? 'bg-green-100 text-green-800' 
+                                                ? 'bg-emerald-100 text-emerald-800' 
                                                 : medicine.quantity > 0 
-                                                    ? 'bg-yellow-100 text-yellow-800'
-                                                    : 'bg-red-100 text-red-800'
+                                                    ? 'bg-amber-100 text-amber-800'
+                                                    : 'bg-rose-100 text-rose-800'
                                         }`}>
                                             {medicine.quantity}
                                         </span>
@@ -88,14 +88,14 @@ const MedicineList: React.FC<MedicineListProps> = ({ medicines, onEdit, onDelete
                                         <div className="flex space-x-3">
                                             <button
                                                 onClick={() => onEdit(medicine)}
-                                                className="p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded-full transition-colors duration-200"
+                                                className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-full transition-colors duration-200"
                                                 title="Edit"
                                             >
                                                 <Pencil size={18} />
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteClick(medicine._id)}
-                                                className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-full transition-colors duration-200"
+                                                className="p-2 text-rose-600 hover:text-rose-900 hover:bg-rose-50 rounded-full transition-colors duration-200"
                                                 title="Delete"
                                             >
                                                 <Trash2 size={18} />

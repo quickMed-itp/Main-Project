@@ -24,7 +24,8 @@ const orderSchema = new mongoose.Schema({
   orderNumber: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    index: true
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -89,7 +90,6 @@ const orderSchema = new mongoose.Schema({
 });
 
 // Add indexes
-orderSchema.index({ orderNumber: 1 }, { unique: true });
 orderSchema.index({ userId: 1 });
 orderSchema.index({ status: 1 });
 orderSchema.index({ createdAt: -1 });
