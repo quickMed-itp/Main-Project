@@ -7,17 +7,25 @@ interface AdminRouteProps {
 }
 
 const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/signin', { replace: true });
-    } else if (!isAdmin) {
-      navigate('/', { replace: true });
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        navigate('/signin', { replace: true });
+      } else if (!isAdmin) {
+        navigate('/', { replace: true });
+      }
     }
-  }, [isAuthenticated, isAdmin, navigate]);
+  }, [isAuthenticated, isAdmin, isLoading, navigate]);
 
+  // Show nothing while checking authentication
+  if (isLoading) {
+    return null;
+  }
+
+  // Only render children if authenticated and admin
   if (!isAuthenticated || !isAdmin) {
     return null;
   }

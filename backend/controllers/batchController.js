@@ -57,15 +57,29 @@ exports.getBatch = catchAsync(async (req, res, next) => {
 
 // Create a new batch
 exports.createBatch = [validateBatch, catchAsync(async (req, res, next) => {
-  const product = await Product.findById(req.params.productId);
+  const { productId, batchNumber, manufacturingDate, expiryDate, quantity, costPrice, sellingPrice } = req.body;
+  
+  const product = await Product.findById(productId);
   
   if (!product) {
     return next(new AppError('No product found with that ID', 404));
   }
+
+  // Check if batch number already exists
+  const existingBatch = await Batch.findOne({ batchNumber });
+  if (existingBatch) {
+    return next(new AppError('Batch number already exists', 400));
+  }
   
   const batch = await Batch.create({
-    ...req.body,
-    productId: req.params.productId
+    productId,
+    batchNumber,
+    manufacturingDate,
+    expiryDate,
+    quantity,
+    costPrice,
+    sellingPrice,
+    status: 'active'
   });
   
   // Update product's total stock
@@ -122,7 +136,7 @@ exports.deleteBatch = catchAsync(async (req, res, next) => {
     return next(new AppError('No batch found with that ID', 404));
   }
   
-  await batch.remove();
+  await Batch.findByIdAndDelete(req.params.batchId);
   
   // Update product's total stock
   const product = await Product.findById(batch.productId);
@@ -155,6 +169,32 @@ exports.getBatchesByStatus = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: 'success',
     results: batches.length,
+    data: {
+      batches
+    }
+  });
+});
+
+// Get all batches
+exports.getAllBatches = catchAsync(async (req, res, next) => {
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
+
+  const batches = await Batch.find()
+    .populate('productId', 'name brand')
+    .sort({ manufacturingDate: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Batch.countDocuments();
+
+  res.status(200).json({
+    status: 'success',
+    results: batches.length,
+    total,
+    totalPages: Math.ceil(total / limit),
+    currentPage: page,
     data: {
       batches
     }

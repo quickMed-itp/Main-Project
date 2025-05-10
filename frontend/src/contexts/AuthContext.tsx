@@ -13,6 +13,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPharmacy, setIsPharmacy] = useState(false);
+  const [isDoctor, setIsDoctor] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -35,6 +37,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(parsedUser);
             setIsAuthenticated(true);
             setIsAdmin(parsedUser.role === 'admin');
+            setIsPharmacy(parsedUser.role === 'pharmacy');
+            setIsDoctor(parsedUser.role === 'doctor');
           } else {
             clearAuth();
           }
@@ -58,6 +62,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setIsAuthenticated(false);
     setIsAdmin(false);
+    setIsPharmacy(false);
+    setIsDoctor(false);
   };
 
   const login = async (email: string, password: string) => {
@@ -72,6 +78,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(user);
       setIsAuthenticated(true);
       setIsAdmin(user?.role === 'admin');
+      setIsPharmacy(user?.role === 'pharmacy');
+      setIsDoctor(user?.role === 'doctor');
 
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
@@ -94,6 +102,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(user);
       setIsAuthenticated(true);
       setIsAdmin(user?.role === 'admin');
+      setIsPharmacy(user?.role === 'pharmacy');
+      setIsDoctor(user?.role === 'doctor');
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -115,6 +125,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user,
       isAuthenticated,
       isAdmin,
+      isPharmacy,
+      isDoctor,
       login,
       register,
       logout,

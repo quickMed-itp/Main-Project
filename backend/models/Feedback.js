@@ -18,6 +18,16 @@ const feedbackSchema = new mongoose.Schema({
     min: 1,
     max: 5
   },
+  productId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  },
   createdAt: {
     type: Date,
     default: Date.now
