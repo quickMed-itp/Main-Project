@@ -19,6 +19,10 @@ router
   .get(batchController.getBatchesByStatus);
 
 router
+  .route('/expiring')
+  .get(batchController.getExpiringBatches);
+
+router
   .route('/product/:productId')
   .get(batchController.getProductBatches);
 

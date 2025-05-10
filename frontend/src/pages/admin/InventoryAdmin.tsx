@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Edit2, Trash2, X, Plus } from 'lucide-react';
+import { Search, Edit2, Trash2, X, Plus, Package, AlertTriangle, TrendingUp, DollarSign } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/useAuth';
 
@@ -81,6 +81,12 @@ const InventoryAdmin = () => {
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
   const [newBatch, setNewBatch] = useState<Partial<Batch>>({});
   const [editedBatch, setEditedBatch] = useState<Partial<Batch>>({});
+  const [summary, setSummary] = useState({
+    totalBatches: 0,
+    activeBatches: 0,
+    expiringBatches: 0,
+    totalValue: 0
+  });
 
   // Fetch batches and products on component mount
   useEffect(() => {
@@ -92,8 +98,26 @@ const InventoryAdmin = () => {
           axios.get<BatchResponse>('/batches'),
           axios.get('/products')
         ]);
-        setBatches(batchesResponse.data.data.batches);
+        const batches = batchesResponse.data.data.batches;
+        setBatches(batches);
         setProducts(productsResponse.data.data.products);
+
+        // Calculate summary metrics
+        const now = new Date();
+        const sevenDaysFromNow = new Date(now);
+        sevenDaysFromNow.setDate(now.getDate() + 7);
+
+        const summaryData = {
+          totalBatches: batches.length,
+          activeBatches: batches.filter(b => b.status === 'active').length,
+          expiringBatches: batches.filter(b => 
+            b.status === 'active' && new Date(b.expiryDate) <= sevenDaysFromNow
+          ).length,
+          totalValue: batches.reduce((sum, batch) => 
+            sum + (batch.quantity * batch.costPrice), 0
+          )
+        };
+        setSummary(summaryData);
       } catch (error) {
         if (axios.isAxiosError(error)) {
           const errorMessage = error.response?.data?.message || 'Failed to fetch data';
@@ -224,6 +248,61 @@ const InventoryAdmin = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Batch Management</h1>
       
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Total Batches Card */}
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Batches</p>
+              <p className="text-2xl font-semibold text-gray-900">{summary.totalBatches}</p>
+            </div>
+            <div className="p-3 bg-blue-100 rounded-full">
+              <Package className="w-6 h-6 text-blue-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Active Batches Card */}
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Active Batches</p>
+              <p className="text-2xl font-semibold text-gray-900">{summary.activeBatches}</p>
+            </div>
+            <div className="p-3 bg-green-100 rounded-full">
+              <TrendingUp className="w-6 h-6 text-green-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Expiring Soon Card */}
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Expiring Soon</p>
+              <p className="text-2xl font-semibold text-gray-900">{summary.expiringBatches}</p>
+            </div>
+            <div className="p-3 bg-amber-100 rounded-full">
+              <AlertTriangle className="w-6 h-6 text-amber-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Total Value Card */}
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Value</p>
+              <p className="text-2xl font-semibold text-gray-900">Rs {summary.totalValue.toFixed(2)}</p>
+            </div>
+            <div className="p-3 bg-emerald-100 rounded-full">
+              <DollarSign className="w-6 h-6 text-emerald-600" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Filters and Search Bar */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <div className="flex flex-wrap gap-4 items-center">
@@ -299,8 +378,8 @@ const InventoryAdmin = () => {
                     {new Date(batch.expiryDate).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{batch.quantity}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${batch.costPrice}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${batch.sellingPrice}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Rs {batch.costPrice}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Rs {batch.sellingPrice}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                       ${batch.status === 'active' ? 'bg-green-100 text-green-800' : 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Edit2, Trash2, X, Plus } from 'lucide-react';
+import { Search, Edit2, Trash2, X, Plus, Package, Tag, DollarSign, TrendingUp } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -51,6 +51,12 @@ const ProductsAdmin: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [summary, setSummary] = useState({
+    totalProducts: 0,
+    totalStock: 0,
+    totalValue: 0,
+    lowStockProducts: 0
+  });
 
   // Get auth token
   const getAuthToken = () => {
@@ -83,7 +89,17 @@ const ProductsAdmin: React.FC = () => {
           Authorization: `Bearer ${token}`
         }
       });
-      setProducts(response.data.data.products);
+      const products = response.data.data.products;
+      setProducts(products);
+
+      // Calculate summary metrics
+      const summaryData = {
+        totalProducts: products.length,
+        totalStock: products.reduce((sum: number, product: Product) => sum + product.totalStock, 0),
+        totalValue: products.reduce((sum: number, product: Product) => sum + (product.totalStock * product.price), 0),
+        lowStockProducts: products.filter((product: Product) => product.totalStock < 10).length
+      };
+      setSummary(summaryData);
     } catch (error) {
       console.error('Error fetching products:', error);
       if (axios.isAxiosError(error)) {
@@ -282,6 +298,61 @@ const ProductsAdmin: React.FC = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Products Management</h1>
       
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Total Products Card */}
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Products</p>
+              <p className="text-2xl font-semibold text-gray-900">{summary.totalProducts}</p>
+            </div>
+            <div className="p-3 bg-blue-100 rounded-full">
+              <Package className="w-6 h-6 text-blue-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Total Stock Card */}
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Stock</p>
+              <p className="text-2xl font-semibold text-gray-900">{summary.totalStock}</p>
+            </div>
+            <div className="p-3 bg-green-100 rounded-full">
+              <TrendingUp className="w-6 h-6 text-green-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Total Value Card */}
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Value</p>
+              <p className="text-2xl font-semibold text-gray-900">Rs {summary.totalValue.toFixed(2)}</p>
+            </div>
+            <div className="p-3 bg-emerald-100 rounded-full">
+              <DollarSign className="w-6 h-6 text-emerald-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Low Stock Products Card */}
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Low Stock Products</p>
+              <p className="text-2xl font-semibold text-gray-900">{summary.lowStockProducts}</p>
+            </div>
+            <div className="p-3 bg-amber-100 rounded-full">
+              <Tag className="w-6 h-6 text-amber-600" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {error && (
         <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
           {error}

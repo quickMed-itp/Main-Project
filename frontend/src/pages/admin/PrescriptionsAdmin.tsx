@@ -205,90 +205,90 @@ const PrescriptionsAdmin = () => {
   const historyPrescriptions = filteredPrescriptions.filter(p => p.status !== 'pending');
 
   return (
-    <div className="p-6 bg-gradient-to-br from-violet-50 via-fuchsia-50 to-pink-50 min-h-screen">
-      <h1 className="text-4xl font-bold mb-8 text-center text-violet-800 bg-white/80 backdrop-blur-sm py-4 rounded-2xl shadow-lg">Prescriptions Management</h1>
+    <div className="p-6 bg-gradient-to-br from-teal-50 via-emerald-50 to-blue-50 min-h-screen">
+      <h1 className="text-4xl font-bold mb-8 text-center text-teal-800 bg-white/80 backdrop-blur-sm py-4 rounded-2xl shadow-lg">Prescriptions Management</h1>
       
       {/* Statistics Dashboard */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Total Prescriptions */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-violet-100">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-teal-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-violet-600 text-sm font-medium">Total Prescriptions</p>
-              <h3 className="text-3xl font-bold text-violet-800 mt-1">{stats.total}</h3>
+              <p className="text-teal-600 text-sm font-medium">Total Prescriptions</p>
+              <h3 className="text-3xl font-bold text-teal-800 mt-1">{stats.total}</h3>
             </div>
-            <div className="bg-violet-100 p-3 rounded-xl">
-              <FileText className="text-violet-600" size={24} />
+            <div className="bg-teal-100 p-3 rounded-xl">
+              <FileText className="text-teal-600" size={24} />
             </div>
           </div>
-          <div className="mt-4 flex items-center text-sm text-violet-500">
+          <div className="mt-4 flex items-center text-sm text-teal-500">
             <TrendingUp size={16} className="mr-1" />
             <span>{stats.todayCount} new today</span>
           </div>
         </div>
 
         {/* Pending Prescriptions */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-violet-100">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-teal-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-amber-600 text-sm font-medium">Pending</p>
-              <h3 className="text-3xl font-bold text-amber-800 mt-1">{stats.pending}</h3>
+              <p className="text-teal-600 text-sm font-medium">Pending</p>
+              <h3 className="text-3xl font-bold text-teal-800 mt-1">{stats.pending}</h3>
             </div>
-            <div className="bg-amber-100 p-3 rounded-xl">
-              <Clock className="text-amber-600" size={24} />
+            <div className="bg-teal-100 p-3 rounded-xl">
+              <Clock className="text-teal-600" size={24} />
             </div>
           </div>
-          <div className="mt-4 flex items-center text-sm text-amber-500">
+          <div className="mt-4 flex items-center text-sm text-teal-500">
             <span>Awaiting review</span>
           </div>
         </div>
 
         {/* Approved Prescriptions */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-violet-100">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-teal-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-fuchsia-600 text-sm font-medium">Approved</p>
-              <h3 className="text-3xl font-bold text-fuchsia-800 mt-1">{stats.approved}</h3>
+              <p className="text-teal-600 text-sm font-medium">Approved</p>
+              <h3 className="text-3xl font-bold text-teal-800 mt-1">{stats.approved}</h3>
             </div>
-            <div className="bg-fuchsia-100 p-3 rounded-xl">
-              <CheckCircle className="text-fuchsia-600" size={24} />
+            <div className="bg-teal-100 p-3 rounded-xl">
+              <CheckCircle className="text-teal-600" size={24} />
             </div>
           </div>
-          <div className="mt-4 flex items-center text-sm text-fuchsia-500">
+          <div className="mt-4 flex items-center text-sm text-teal-500">
             <span>Successfully processed</span>
           </div>
         </div>
 
         {/* Rejected Prescriptions */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-violet-100">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-teal-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-rose-600 text-sm font-medium">Rejected</p>
-              <h3 className="text-3xl font-bold text-rose-800 mt-1">{stats.rejected}</h3>
+              <p className="text-teal-600 text-sm font-medium">Rejected</p>
+              <h3 className="text-3xl font-bold text-teal-800 mt-1">{stats.rejected}</h3>
             </div>
-            <div className="bg-rose-100 p-3 rounded-xl">
-              <XCircle className="text-rose-600" size={24} />
+            <div className="bg-teal-100 p-3 rounded-xl">
+              <XCircle className="text-teal-600" size={24} />
             </div>
           </div>
-          <div className="mt-4 flex items-center text-sm text-rose-500">
+          <div className="mt-4 flex items-center text-sm text-teal-500">
             <span>Not approved</span>
           </div>
         </div>
       </div>
 
       {/* Recent Activity Chart */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-violet-100 mb-8">
-        <h2 className="text-xl font-semibold text-violet-800 mb-4">Recent Activity</h2>
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-teal-100 mb-8">
+        <h2 className="text-xl font-semibold text-teal-800 mb-4">Recent Activity</h2>
         <div className="flex items-end h-32 gap-2">
           {stats.recentActivity.map((activity, index) => (
             <div key={index} className="flex-1 flex flex-col items-center">
               <div 
-                className="w-full bg-violet-200 rounded-t-lg transition-all duration-300 hover:bg-violet-300"
+                className="w-full bg-teal-200 rounded-t-lg transition-all duration-300 hover:bg-teal-300"
                 style={{ 
                   height: `${Math.max(10, (activity.count / Math.max(...stats.recentActivity.map(a => a.count))) * 100)}%`
                 }}
               />
-              <span className="text-xs text-violet-600 mt-2">
+              <span className="text-xs text-teal-600 mt-2">
                 {new Date(activity.date).toLocaleDateString('en-US', { weekday: 'short' })}
               </span>
             </div>
@@ -298,32 +298,32 @@ const PrescriptionsAdmin = () => {
 
       {/* Performance Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-violet-100">
-          <h2 className="text-xl font-semibold text-violet-800 mb-4">Response Time</h2>
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-teal-100">
+          <h2 className="text-xl font-semibold text-teal-800 mb-4">Response Time</h2>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-3xl font-bold text-violet-800">
+              <p className="text-3xl font-bold text-teal-800">
                 {formatDuration(stats.averageResponseTime)}
               </p>
-              <p className="text-violet-600 text-sm mt-1">Average response time</p>
+              <p className="text-teal-600 text-sm mt-1">Average response time</p>
             </div>
-            <div className="bg-violet-100 p-3 rounded-xl">
-              <Clock className="text-violet-600" size={24} />
+            <div className="bg-teal-100 p-3 rounded-xl">
+              <Clock className="text-teal-600" size={24} />
             </div>
           </div>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-violet-100">
-          <h2 className="text-xl font-semibold text-violet-800 mb-4">Patient Statistics</h2>
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-teal-100">
+          <h2 className="text-xl font-semibold text-teal-800 mb-4">Patient Statistics</h2>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-3xl font-bold text-violet-800">
+              <p className="text-3xl font-bold text-teal-800">
                 {new Set(prescriptions.map(p => p.patientName)).size}
               </p>
-              <p className="text-violet-600 text-sm mt-1">Unique patients</p>
+              <p className="text-teal-600 text-sm mt-1">Unique patients</p>
             </div>
-            <div className="bg-violet-100 p-3 rounded-xl">
-              <Users className="text-violet-600" size={24} />
+            <div className="bg-teal-100 p-3 rounded-xl">
+              <Users className="text-teal-600" size={24} />
             </div>
           </div>
         </div>
@@ -338,15 +338,15 @@ const PrescriptionsAdmin = () => {
               placeholder="Search by patient name or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-violet-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-200 transition-all duration-200"
+              className="w-full pl-10 pr-4 py-2 rounded-xl border border-teal-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all duration-200"
             />
-            <Search className="absolute left-3 top-2.5 text-violet-400" size={20} />
+            <Search className="absolute left-3 top-2.5 text-teal-400" size={20} />
           </div>
         </div>
         <div className="flex gap-3">
           <button
             onClick={() => setIsFilterModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white text-violet-600 rounded-xl border border-violet-200 hover:bg-violet-50 transition-all duration-200"
+            className="flex items-center gap-2 px-4 py-2 bg-white text-teal-600 rounded-xl border border-teal-200 hover:bg-teal-50 transition-all duration-200"
           >
             <Filter size={20} />
             Filter
@@ -358,7 +358,7 @@ const PrescriptionsAdmin = () => {
               setSortField(field as 'date' | 'name' | 'age');
               setSortDirection(direction as 'asc' | 'desc');
             }}
-            className="px-4 py-2 bg-white text-violet-600 rounded-xl border border-violet-200 hover:bg-violet-50 transition-all duration-200"
+            className="px-4 py-2 bg-white text-teal-600 rounded-xl border border-teal-200 hover:bg-teal-50 transition-all duration-200"
           >
             <option value="date-desc">Newest First</option>
             <option value="date-asc">Oldest First</option>
@@ -371,13 +371,13 @@ const PrescriptionsAdmin = () => {
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl transform transition-all duration-300 hover:scale-[1.02] shadow-md">
+        <div className="mb-4 p-4 bg-teal-50 border border-teal-200 text-teal-700 rounded-xl transform transition-all duration-300 hover:scale-[1.02] shadow-md">
           {error}
         </div>
       )}
 
       {loading && (
-        <div className="mb-4 p-4 bg-violet-50 border border-violet-200 text-violet-700 rounded-xl transform transition-all duration-300 hover:scale-[1.02] shadow-md">
+        <div className="mb-4 p-4 bg-teal-50 border border-teal-200 text-teal-700 rounded-xl transform transition-all duration-300 hover:scale-[1.02] shadow-md">
           Loading...
         </div>
       )}
@@ -532,10 +532,10 @@ const PrescriptionsAdmin = () => {
                 <h3 className="font-medium text-gray-700">Status</h3>
                 <span className={`px-2 py-1 rounded-full text-sm ${
                   selectedPrescription.status === 'approved' 
-                    ? 'bg-green-100 text-green-800'
+                    ? 'bg-teal-100 text-teal-800'
                     : selectedPrescription.status === 'rejected'
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-yellow-100 text-yellow-800'
+                    ? 'bg-teal-100 text-teal-800'
+                    : 'bg-teal-100 text-teal-800'
                 }`}>
                   {selectedPrescription.status}
                 </span>
@@ -547,7 +547,7 @@ const PrescriptionsAdmin = () => {
                       handleStatusUpdate(selectedPrescription._id, 'rejected');
                       setIsViewModalOpen(false);
                     }}
-                    className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                    className="px-6 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
                   >
                     Reject
                   </button>
@@ -556,7 +556,7 @@ const PrescriptionsAdmin = () => {
                       handleStatusUpdate(selectedPrescription._id, 'approved');
                       setIsViewModalOpen(false);
                     }}
-                    className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                    className="px-6 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
                   >
                     Approve
                   </button>
@@ -572,7 +572,7 @@ const PrescriptionsAdmin = () => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-8 w-full max-w-md shadow-2xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-semibold text-violet-800">Filter Prescriptions</h2>
+              <h2 className="text-2xl font-semibold text-teal-800">Filter Prescriptions</h2>
               <button 
                 onClick={() => setIsFilterModalOpen(false)}
                 className="text-gray-500 hover:text-gray-700 transition-all duration-200 hover:scale-110"
@@ -582,11 +582,11 @@ const PrescriptionsAdmin = () => {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-violet-700 mb-2">Status</label>
+                <label className="block text-teal-700 mb-2">Status</label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
-                  className="w-full px-4 py-2 rounded-xl border border-violet-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-200 transition-all duration-200"
+                  className="w-full px-4 py-2 rounded-xl border border-teal-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all duration-200"
                 >
                   <option value="all">All Status</option>
                   <option value="pending">Pending</option>
@@ -594,19 +594,19 @@ const PrescriptionsAdmin = () => {
                   <option value="rejected">Rejected</option>
                 </select>
               </div>
-              <div className="flex justify-end gap-3 pt-4 border-t border-violet-100">
+              <div className="flex justify-end gap-3 pt-4 border-t border-teal-100">
                 <button
                   onClick={() => {
                     setStatusFilter('all');
                     setIsFilterModalOpen(false);
                   }}
-                  className="px-4 py-2 text-violet-600 hover:bg-violet-50 transition-all duration-200"
+                  className="px-4 py-2 text-teal-600 hover:bg-teal-50 transition-all duration-200"
                 >
                   Reset
                 </button>
                 <button
                   onClick={() => setIsFilterModalOpen(false)}
-                  className="px-4 py-2 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-all duration-200"
+                  className="px-4 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition-all duration-200"
                 >
                   Apply Filters
                 </button>

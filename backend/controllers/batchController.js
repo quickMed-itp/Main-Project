@@ -199,4 +199,39 @@ exports.getAllBatches = catchAsync(async (req, res, next) => {
       batches
     }
   });
+});
+
+// Get batches expiring within 7 days
+exports.getExpiringBatches = catchAsync(async (req, res, next) => {
+  const sevenDaysFromNow = new Date();
+  sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+  
+  const batches = await Batch.find({
+    expiryDate: { $lte: sevenDaysFromNow },
+    status: 'active'
+  })
+    .populate('productId', 'name brand')
+    .sort({ expiryDate: 1 });
+  
+  // Emit the expiring batches event
+  const io = req.app.get('io');
+  if (io) {
+    io.emit('expiringBatches', {
+      batches: batches.map(batch => ({
+        id: batch._id,
+        productName: batch.productId.name,
+        batchNumber: batch.batchNumber,
+        expiryDate: batch.expiryDate,
+        daysUntilExpiry: Math.ceil((new Date(batch.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+      }))
+    });
+  }
+  
+  res.status(200).json({
+    status: 'success',
+    results: batches.length,
+    data: {
+      batches
+    }
+  });
 }); 
