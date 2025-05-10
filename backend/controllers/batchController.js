@@ -89,7 +89,7 @@ exports.createBatch = catchAsync(async (req, res, next) => {
     costPrice,
     sellingPrice
   } = req.body;
-
+  
   // Validate required fields
   if (!productId || !supplierId || !batchNumber || !manufacturingDate || !expiryDate || !quantity || !costPrice || !sellingPrice) {
     return next(new AppError('All fields are required', 400));
@@ -112,7 +112,7 @@ exports.createBatch = catchAsync(async (req, res, next) => {
   if (existingBatch) {
     return next(new AppError('Batch number already exists', 400));
   }
-
+  
   // Create new batch
   const batch = await Batch.create({
     productId,
@@ -125,11 +125,11 @@ exports.createBatch = catchAsync(async (req, res, next) => {
     costPrice,
     sellingPrice
   });
-
+  
   // Update product stock
   product.stock += quantity;
   await product.save();
-
+  
   res.status(201).json({
     status: 'success',
     data: {
@@ -338,7 +338,7 @@ exports.getExpiringBatches = catchAsync(async (req, res, next) => {
       }))
     });
   }
-  
+
   res.status(200).json({
     status: 'success',
     results: batches.length,

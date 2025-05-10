@@ -127,9 +127,10 @@ const InventoryAdmin = () => {
         ]);
         const batches = batchesResponse.data.data.batches;
         setBatches(batches);
-        setProducts(productsResponse.data.data.products);
+        const productsData = productsResponse.data.data.products || [];
+        setProducts(productsData);
+        setFilteredProducts(productsData);
         setSuppliers(suppliersResponse.data.data.suppliers);
-        setFilteredProducts(productsResponse.data.data.products);
 
         // Calculate summary metrics
         const now = new Date();
@@ -151,6 +152,7 @@ const InventoryAdmin = () => {
         if (axios.isAxiosError(error)) {
           const errorMessage = error.response?.data?.message || 'Failed to fetch data';
           console.error('Error fetching data:', errorMessage);
+          setError(errorMessage);
           if (error.response?.status === 401) {
             logout();
           }
@@ -462,7 +464,7 @@ const InventoryAdmin = () => {
           </div>
         </div>
       </div>
-
+      
       {/* Filters and Search Bar */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <div className="flex flex-wrap gap-4 items-center">
@@ -618,8 +620,8 @@ const InventoryAdmin = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Product</label>
                   <div className="relative">
-                    <input
-                      type="text"
+                  <input
+                    type="text"
                       className={`mt-1 block w-full border ${addFormErrors.productId ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm p-2`}
                       placeholder="Search products..."
                       value={productSearchTerm}

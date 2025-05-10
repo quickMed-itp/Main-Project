@@ -1,25 +1,22 @@
 const express = require('express');
 const orderController = require('../controllers/orderController');
-const authController = require('../controllers/authController');
+const { protect, restrictTo } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
 // Protect all routes
-router.use(authController.protect);
+router.use(protect);
 
-// Admin only routes
-router.get('/admin/all', authController.restrictTo('admin'), orderController.getAllOrders);
+// Admin routes
+router.get('/admin/all', restrictTo('admin'), orderController.getAllOrders);
+router.get('/admin/:id', restrictTo('admin'), orderController.getOrderById);
+router.patch('/admin/:id', restrictTo('admin'), orderController.updateOrder);
+router.delete('/admin/:id', restrictTo('admin'), orderController.deleteOrder);
 
 // User routes
-router
-  .route('/')
-  .get(orderController.getUserOrders)
-  .post(orderController.createOrder);
-
-router
-  .route('/:id')
-  .get(orderController.getOrderById)
-  .patch(orderController.updateOrder)
-  .delete(authController.restrictTo('admin'), orderController.deleteOrder);
+router.get('/my-orders', orderController.getUserOrders);
+router.get('/:id', orderController.getOrderById);
+router.post('/', orderController.createOrder);
+router.patch('/:id/cancel', orderController.cancelOrder);
 
 module.exports = router;

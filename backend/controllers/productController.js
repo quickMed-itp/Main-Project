@@ -3,8 +3,9 @@ const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
-const { sendLowStockAlert } = require('../utils/emailService');
+const { sendLowStockAlert, sendRestockRequestEmail, testEmailConfiguration } = require('../utils/emailService');
 const Batch = require('../models/Batch');
+const Supplier = require('../models/Supplier');
 
 // Helper function to calculate total stock from batches
 const calculateTotalStock = async (productId) => {
@@ -14,7 +15,7 @@ const calculateTotalStock = async (productId) => {
   // Sum up all valid batches (not expired and active)
   const totalStock = product.batches.reduce((sum, batch) => {
     if (batch.status === 'active' && new Date(batch.expiryDate) > new Date()) {
-      return sum + (batch.quantity || 0);
+      return sum + (batch.remainingQuantity || 0);
     }
     return sum;
   }, 0);
@@ -31,9 +32,10 @@ const calculateTotalStock = async (productId) => {
   }, 0);
 
   // Update product with calculated stock
-  await Product.findByIdAndUpdate(productId, { totalStock: totalStock - orderedQuantity });
+  const finalStock = Math.max(0, totalStock - orderedQuantity);
+  await Product.findByIdAndUpdate(productId, { totalStock: finalStock });
 
-  return totalStock - orderedQuantity;
+  return finalStock;
 };
 
 // Validation middleware
@@ -285,63 +287,165 @@ exports.updateProductStock = catchAsync(async (req, res, next) => {
   });
 });
 
-// Add new controller function for batch stock update
-exports.updateBatchStock = async (req, res) => {
+// Update product batch stock
+exports.updateBatchStock = catchAsync(async (req, res, next) => {
+  const { productId } = req.params;
+  const { quantity } = req.body;
+
+  // Find the product
+  const product = await Product.findById(productId);
+  if (!product) {
+    return next(new AppError('Product not found', 404));
+  }
+
+  // Find the first batch with available stock
+  const batch = await Batch.findOne({
+    productId,
+    remainingQuantity: { $gt: 0 },
+    status: 'active'
+  }).sort({ manufacturingDate: 1 }); // Get the oldest batch first (FIFO)
+
+  if (!batch) {
+    return next(new AppError('No stock available in any batch', 400));
+  }
+
+  // Check if batch has enough stock
+  if (batch.remainingQuantity < Math.abs(quantity)) {
+    return next(new AppError('Insufficient stock in batch', 400));
+  }
+
+  // Update batch stock
+  batch.remainingQuantity += quantity; // quantity is negative for reduction
+  if (batch.remainingQuantity === 0) {
+    batch.status = 'depleted';
+  }
+  await batch.save();
+
+  // Update product total stock
+  product.totalStock += quantity;
+  await product.save();
+
+  // Return updated product
+  res.status(200).json({
+    status: 'success',
+    data: {
+      product
+    }
+  });
+});
+
+// Send restock request to supplier
+exports.sendRestockRequest = async (req, res) => {
   try {
-    const { quantity } = req.body;
-    const productId = req.params.id;
+    const { products } = req.body;
 
-    if (!quantity || typeof quantity !== 'number') {
+    if (!products || !Array.isArray(products) || products.length === 0) {
       return res.status(400).json({
         status: 'error',
-        message: 'Invalid quantity provided'
+        message: 'No products provided for restock request'
       });
     }
 
-    const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Product not found'
-      });
-    }
+    // Get the last 30 days of shipped orders for demand analysis
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Find the first batch with available stock
-    const batch = await Batch.findOne({ 
-      productId: productId,
-      remainingQuantity: { $gt: 0 }
-    }).sort({ createdAt: 1 }); // Sort by creation date to get the oldest batch first
-
-    if (!batch) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'No available stock in any batch'
-      });
-    }
-
-    // Calculate how much to reduce from this batch
-    const reduceAmount = Math.min(quantity, batch.remainingQuantity);
-    
-    // Update batch stock
-    batch.remainingQuantity -= reduceAmount;
-    await batch.save();
-
-    // Update product total stock
-    product.totalStock -= reduceAmount;
-    await product.save();
-
-    res.status(200).json({
-      status: 'success',
-      data: {
-        product,
-        batch
-      }
+    const recentOrders = await Order.find({
+      status: 'shipped',
+      createdAt: { $gte: thirtyDaysAgo }
+    }).populate({
+      path: 'items.product',
+      select: 'name brand category'
     });
+
+    // Calculate demand for each product
+    const productDemand = {};
+    recentOrders.forEach(order => {
+      order.items.forEach(item => {
+        if (!item.product) return; // Skip if product is not populated
+        const productId = item.product._id.toString();
+        if (!productDemand[productId]) {
+          productDemand[productId] = {
+            totalQuantity: 0,
+            orderCount: 0
+          };
+        }
+        productDemand[productId].totalQuantity += item.quantity;
+        productDemand[productId].orderCount += 1;
+      });
+    });
+
+    // Prepare products for restock request
+    const restockProducts = products.map(product => {
+      const demand = productDemand[product._id] || { totalQuantity: 0, orderCount: 0 };
+      const averageDailyDemand = demand.totalQuantity / 30;
+      const safetyStock = Math.max(averageDailyDemand * 7, 10); // 7 days safety stock, minimum 10 units
+      const recommendedQuantity = Math.max(
+        Math.ceil(safetyStock * 2), // Minimum order quantity
+        Math.ceil(safetyStock - product.totalStock) // Required to reach safety stock
+      );
+
+      return {
+        name: product.name,
+        brand: product.brand,
+        category: product.category,
+        currentStock: product.totalStock,
+        recommendedQuantity,
+        demandAnalysis: {
+          averageDailyDemand: averageDailyDemand.toFixed(2),
+          totalOrders: demand.orderCount,
+          totalQuantity: demand.totalQuantity
+        }
+      };
+    });
+
+    // Send email with restock request
+    try {
+      await sendRestockRequestEmail(restockProducts);
+      res.status(200).json({
+        status: 'success',
+        message: `Restock request sent for ${restockProducts.length} products`,
+        data: {
+          products: restockProducts,
+          emailSent: true
+        }
+      });
+    } catch (emailError) {
+      console.error('Error sending restock request email:', emailError);
+      // Still return success but indicate email wasn't sent
+      res.status(200).json({
+        status: 'success',
+        message: `Restock request processed for ${restockProducts.length} products (Email not sent)`,
+        data: {
+          products: restockProducts,
+          emailSent: false,
+          emailError: emailError.message
+        }
+      });
+    }
   } catch (error) {
-    console.error('Error updating batch stock:', error);
+    console.error('Error processing restock request:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Error updating batch stock'
+      message: 'Error processing restock request: ' + error.message
+    });
+  }
+};
+
+// Test email configuration
+exports.testEmailConfig = async (req, res) => {
+  try {
+    const result = await testEmailConfiguration();
+    res.status(200).json({
+      status: 'success',
+      message: 'Test email sent successfully',
+      data: result
+    });
+  } catch (error) {
+    console.error('Error testing email configuration:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error testing email configuration: ' + error.message
     });
   }
 };

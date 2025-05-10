@@ -1,123 +1,77 @@
 const mongoose = require('mongoose');
 
-const orderItemSchema = new mongoose.Schema({
-  productId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product',
-    required: true
-  },
-  name: {
-    type: String,
-    required: true
-  },
-  price: {
-    type: Number,
-    required: true
-  },
-  quantity: {
-    type: Number,
-    required: true
-  }
-});
-
 const orderSchema = new mongoose.Schema({
   orderNumber: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
-  userId: {
+  customer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-  customer: {
-    type: String,
+  items: [{
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
     required: true
   },
-  items: [orderItemSchema],
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1
+    },
+    price: {
+      type: Number,
+      required: true,
+      min: 0
+    }
+  }],
   totalAmount: {
     type: Number,
-    required: true
-  },
-  shippingAddress: {
-    label: String,
-    houseNumber: String,
-    streetName: String,
-    villageArea: String,
-    townCity: String,
-    district: String,
-    postalCode: String,
-    fullAddress: String
+    required: true,
+    min: 0
   },
   status: {
     type: String,
     enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
     default: 'pending'
   },
+  shippingAddress: {
+    street: String,
+    city: String,
+    state: String,
+    zipCode: String,
+    country: String
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'completed', 'failed'],
+    default: 'pending'
+  },
   paymentMethod: {
     type: String,
-    enum: ['visa', 'mastercard'],
-    required: true
-  },
-  paymentDetails: {
-    cardType: String,
-    lastFourDigits: String
-  },
-  trackingNumber: {
-    type: String
-  },
-  adminNotes: {
-    type: String
-  },
-  estimatedDelivery: {
-    type: Date
-  },
-  actualDelivery: {
-    type: Date
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
+    enum: ['cash', 'card'],
+    default: 'cash'
   }
 }, {
   timestamps: true
 });
 
-// Add indexes
-orderSchema.index({ userId: 1 });
-orderSchema.index({ status: 1 });
-orderSchema.index({ createdAt: -1 });
-
-// Add virtual for formatted date
-orderSchema.virtual('formattedDate').get(function() {
-  return this.createdAt.toLocaleDateString();
+// Generate order number before saving
+orderSchema.pre('save', async function(next) {
+  if (this.isNew) {
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const count = await mongoose.model('Order').countDocuments();
+    this.orderNumber = `ORD-${year}${month}${day}-${(count + 1).toString().padStart(4, '0')}`;
+  }
+  next();
 });
 
-// Add method to update status
-orderSchema.methods.updateStatus = async function(newStatus) {
-  this.status = newStatus;
-  if (newStatus === 'delivered') {
-    this.actualDelivery = new Date();
-  }
-  return this.save();
-};
+const Order = mongoose.model('Order', orderSchema);
 
-// Add method to add admin notes
-orderSchema.methods.addAdminNote = async function(note) {
-  this.adminNotes = note;
-  return this.save();
-};
-
-// Add method to update tracking
-orderSchema.methods.updateTracking = async function(trackingNumber) {
-  this.trackingNumber = trackingNumber;
-  return this.save();
-};
-
-module.exports = mongoose.model('Order', orderSchema);
+module.exports = Order;

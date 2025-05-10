@@ -152,7 +152,7 @@ const OrdersAdmin = () => {
       setError(null);
       const token = localStorage.getItem('pharmacy_token');
       const response = await axios.delete(
-        `${API_BASE_URL}/orders/${orderId}`,
+        `${API_BASE_URL}/orders/admin/${orderId}`,
         {
           headers: { 
             Authorization: `Bearer ${token}`,

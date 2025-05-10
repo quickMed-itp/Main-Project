@@ -240,7 +240,10 @@ exports.generateCustomerReport = async (req, res) => {
 // Generate order report
 exports.generateOrderReport = async (req, res) => {
   try {
-    const orders = await Order.find().populate('userId', 'name email');
+    const orders = await Order.find()
+      .populate('customer', 'name email')
+      .populate('items.product', 'name price');
+    
     const doc = createPDFDocument();
     
     res.setHeader('Content-Type', 'application/pdf');
@@ -287,8 +290,8 @@ exports.generateOrderReport = async (req, res) => {
       
       tableY = createTableRow(doc, [
         index + 1,
-        order._id.toString().slice(-6),
-        order.userId.name,
+        order.orderNumber,
+        order.customer ? order.customer.name : 'N/A',
         `Rs. ${order.totalAmount.toFixed(2)}`,
         order.status.charAt(0).toUpperCase() + order.status.slice(1),
         order.createdAt.toLocaleDateString()
@@ -373,7 +376,10 @@ exports.generatePrescriptionReport = async (req, res) => {
 // Generate feedback report
 exports.generateFeedbackReport = async (req, res) => {
   try {
-    const feedbacks = await Feedback.find().populate('userId', 'name');
+    const feedbacks = await Feedback.find()
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 });
+    
     const doc = createPDFDocument();
     
     res.setHeader('Content-Type', 'application/pdf');
@@ -394,12 +400,14 @@ exports.generateFeedbackReport = async (req, res) => {
     createSummaryCard(doc, 'Total Feedbacks', feedbacks.length, x, y, cardWidth, cardHeight);
     
     // Card 2: Average Rating
-    const avgRating = feedbacks.reduce((sum, f) => sum + f.rating, 0) / feedbacks.length;
+    const avgRating = feedbacks.length > 0 
+      ? (feedbacks.reduce((sum, f) => sum + (f.rating || 0), 0) / feedbacks.length).toFixed(1)
+      : '0.0';
     x += cardWidth + gap;
-    createSummaryCard(doc, 'Avg. Rating', avgRating.toFixed(1), x, y, cardWidth, cardHeight);
+    createSummaryCard(doc, 'Avg. Rating', avgRating, x, y, cardWidth, cardHeight);
     
     // Card 3: Positive (4-5 stars)
-    const positive = feedbacks.filter(f => f.rating >= 4).length;
+    const positive = feedbacks.filter(f => (f.rating || 0) >= 4).length;
     x += cardWidth + gap;
     createSummaryCard(doc, 'Positive', positive, x, y, cardWidth, cardHeight);
     
@@ -419,13 +427,14 @@ exports.generateFeedbackReport = async (req, res) => {
       }
       
       // Create star rating visualization
-      const stars = '★'.repeat(feedback.rating) + '☆'.repeat(5 - feedback.rating);
+      const rating = feedback.rating || 0;
+      const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
       
       tableY = createTableRow(doc, [
         index + 1,
-        feedback.userId.name,
+        feedback.user ? feedback.user.name : 'Anonymous',
         stars,
-        feedback.comment.length > 50 ? feedback.comment.substring(0, 50) + '...' : feedback.comment,
+        feedback.comment ? (feedback.comment.length > 50 ? feedback.comment.substring(0, 50) + '...' : feedback.comment) : 'No comment',
         feedback.createdAt.toLocaleDateString()
       ], startX, tableY, colWidths);
     });
@@ -434,7 +443,10 @@ exports.generateFeedbackReport = async (req, res) => {
     doc.end();
   } catch (error) {
     console.error('Error generating feedback report:', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      status: 'error',
+      message: 'Error generating feedback report: ' + error.message 
+    });
   }
 };
 

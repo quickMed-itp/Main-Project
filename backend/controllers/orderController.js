@@ -6,6 +6,7 @@ const Batch = require('../models/Batch');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const nodemailer = require('nodemailer');
+const { sendOrderRequestEmail } = require('../utils/emailService');
 
 // Configure email transporter
 const transporter = nodemailer.createTransport({
@@ -45,27 +46,73 @@ const sendOutOfStockEmail = async (product, quantity) => {
   }
 };
 
-// Get all orders (Admin only)
-exports.getAllOrders = async (req, res) => {
+// Get all orders (admin only)
+exports.getAllOrders = catchAsync(async (req, res, next) => {
   try {
-    const orders = await Order.find()
-      .populate('userId', 'name email')
-      .sort('-createdAt');
+    const { status, startDate, endDate, search } = req.query;
+    
+    // Build query
+    const query = {};
+    
+    // Filter by status if provided
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    
+    // Filter by date range if provided
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) {
+        query.createdAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        query.createdAt.$lte = new Date(endDate);
+      }
+    }
+    
+    // Search by order number or customer name
+    if (search) {
+      query.$or = [
+        { orderNumber: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    // Get orders with populated fields
+    const orders = await Order.find(query)
+      .populate({
+        path: 'customer',
+        select: 'name email phone'
+      })
+      .populate({
+        path: 'items.product',
+        select: 'name brand category price'
+      })
+      .sort({ createdAt: -1 });
+    
+    // Calculate summary statistics
+    const summary = {
+      total: orders.length,
+      pending: orders.filter(order => order.status === 'pending').length,
+      processing: orders.filter(order => order.status === 'processing').length,
+      shipped: orders.filter(order => order.status === 'shipped').length,
+      delivered: orders.filter(order => order.status === 'delivered').length,
+      cancelled: orders.filter(order => order.status === 'cancelled').length,
+      totalAmount: orders.reduce((sum, order) => sum + order.totalAmount, 0)
+    };
     
     res.status(200).json({
       status: 'success',
       results: orders.length,
       data: {
-        orders
+        orders,
+        summary
       }
     });
-  } catch (err) {
-    res.status(500).json({
-      status: 'fail',
-      message: err.message
-    });
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    next(new AppError('Error fetching orders: ' + error.message, 500));
   }
-};
+});
 
 // Helper function to generate order number
 const generateOrderNumber = () => {
@@ -75,62 +122,57 @@ const generateOrderNumber = () => {
 };
 
 // Create new order
-exports.createOrder = async (req, res) => {
-  try {
-    const cart = await Cart.findOne({ userId: req.user._id }).populate('items.productId');
-    if (!cart || cart.items.length === 0) {
-      return res.status(400).json({ 
-        status: 'fail',
-        message: 'Your cart is empty'
-      });
-    }
-    
-    // Check stock availability
-    for (const item of cart.items) {
-      const product = await Product.findById(item.productId._id);
-      if (product.totalStock < item.quantity) {
-        return res.status(400).json({
-          status: 'fail',
-          message: `Not enough stock for ${product.name}`
-        });
-      }
-    }
-    
-    const orderItems = cart.items.map(item => ({
-      productId: item.productId._id,
-      name: item.productId.name,
-      price: item.productId.price,
-      quantity: item.quantity
-    }));
-    
-    const totalAmount = orderItems.reduce(
-      (sum, item) => sum + (item.price * item.quantity), 0
-    );
+exports.createOrder = catchAsync(async (req, res, next) => {
+  const { items, shippingAddress, paymentMethod } = req.body;
+  const userId = req.user.id;
 
-    // Get user information
-    const user = await User.findById(req.user._id);
+  // Validate items
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return next(new AppError('Please provide order items', 400));
+    }
     
-    // Generate order number and set default payment method if not provided
-    const orderNumber = generateOrderNumber();
-    const paymentMethod = req.body.paymentMethod || 'visa'; // Default to visa if not specified
-    
-    const order = await Order.create({
-      userId: req.user._id,
-      orderNumber,
-      customer: user.name || user.email,
-      items: orderItems,
-      totalAmount,
-      shippingAddress: req.body.shippingAddress || req.user.address,
-      status: 'pending',
-      paymentMethod,
-      paymentDetails: req.body.paymentDetails || {
-        cardType: paymentMethod,
-        lastFourDigits: '****'
+  // Calculate total amount and validate stock
+  let totalAmount = 0;
+  for (const item of items) {
+    const product = await Product.findById(item.product);
+    if (!product) {
+      return next(new AppError(`Product not found: ${item.product}`, 404));
       }
+
+    if (product.totalStock < item.quantity) {
+      return next(new AppError(`Insufficient stock for ${product.name}`, 400));
+    }
+
+    totalAmount += product.price * item.quantity;
+  }
+
+  // Create order
+    const order = await Order.create({
+    user: userId,
+    items,
+      totalAmount,
+    shippingAddress,
+    paymentMethod
+  });
+
+  // Populate order details for email
+  const populatedOrder = await Order.findById(order._id)
+    .populate('user', 'name email')
+    .populate('items.product', 'name price');
+
+  // Send order request email
+  try {
+    await sendOrderRequestEmail({
+      orderNumber: order._id,
+      items: populatedOrder.items,
+      totalAmount: order.totalAmount,
+      customerName: populatedOrder.user.name,
+      customerEmail: populatedOrder.user.email
     });
-    
-    // Clear the cart
-    await Cart.findByIdAndDelete(cart._id);
+  } catch (error) {
+    console.error('Error sending order request email:', error);
+    // Don't fail the order creation if email fails
+  }
     
     res.status(201).json({
       status: 'success',
@@ -138,14 +180,7 @@ exports.createOrder = async (req, res) => {
         order
       }
     });
-  } catch (err) {
-    console.error('Order creation error:', err);
-    res.status(400).json({
-      status: 'fail',
-      message: err.message
     });
-  }
-};
 
 // Get order by ID
 exports.getOrderById = async (req, res) => {
@@ -188,8 +223,8 @@ exports.updateOrder = catchAsync(async (req, res, next) => {
   const { id } = req.params;
   const { status, updateStock } = req.body;
 
-  const order = await Order.findById(id);
-  if (!order) {
+  const order = await Order.findById(id).populate('items.productId');
+    if (!order) {
     return next(new AppError('Order not found', 404));
   }
 
@@ -200,7 +235,7 @@ exports.updateOrder = catchAsync(async (req, res, next) => {
       const product = await Product.findById(item.productId);
       if (!product) {
         return next(new AppError(`Product not found: ${item.productId}`, 404));
-      }
+    }
 
       // Find the first batch with available stock
       const batch = await Batch.findOne({
@@ -231,15 +266,22 @@ exports.updateOrder = catchAsync(async (req, res, next) => {
       }
       await batch.save();
 
-      // Update product stock
-      product.stock -= item.quantity;
-      await product.save();
+      // Update product total stock
+      const updatedProduct = await Product.findByIdAndUpdate(
+        item.productId,
+        { $inc: { totalStock: -item.quantity } },
+        { new: true }
+      );
+
+      if (!updatedProduct) {
+        return next(new AppError(`Failed to update stock for product: ${product.name}`, 500));
+    }
 
       // Check if product stock is below threshold (e.g., 20% of typical order quantity)
       const stockThreshold = Math.max(10, Math.ceil(item.quantity * 0.2));
-      if (product.stock <= stockThreshold) {
+      if (updatedProduct.totalStock <= stockThreshold) {
         // Send low stock alert email
-        await sendOutOfStockEmail(product, item.quantity);
+        await sendOutOfStockEmail(updatedProduct, item.quantity);
       }
     }
   }
@@ -252,14 +294,14 @@ exports.updateOrder = catchAsync(async (req, res, next) => {
   const updatedOrder = await Order.findById(id)
     .populate('userId', 'name email')
     .populate('items.productId', 'name price');
-
-  res.status(200).json({
-    status: 'success',
-    data: {
-      order: updatedOrder
-    }
-  });
-});
+    
+    res.status(200).json({
+      status: 'success',
+      data: {
+        order: updatedOrder
+      }
+    });
+    });
 
 // Delete order
 exports.deleteOrder = async (req, res) => {
@@ -323,3 +365,38 @@ exports.getUserOrders = async (req, res) => {
     });
   }
 };
+
+// Cancel order
+exports.cancelOrder = catchAsync(async (req, res, next) => {
+  const order = await Order.findById(req.params.id);
+  
+  if (!order) {
+    return next(new AppError('No order found with that ID', 404));
+  }
+
+  // Check if user is authorized to cancel this order
+  if (req.user.role !== 'admin' && order.customer.toString() !== req.user._id.toString()) {
+    return next(new AppError('You are not authorized to cancel this order', 403));
+  }
+
+  // Check if order can be cancelled
+  if (!['pending', 'processing'].includes(order.status)) {
+    return next(new AppError('This order cannot be cancelled', 400));
+  }
+
+  // Update order status
+  order.status = 'cancelled';
+  await order.save();
+
+  // Populate the updated order
+  const updatedOrder = await Order.findById(order._id)
+    .populate('customer', 'name email')
+    .populate('items.product', 'name price');
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      order: updatedOrder
+    }
+  });
+});

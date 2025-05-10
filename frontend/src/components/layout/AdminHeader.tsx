@@ -171,13 +171,13 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ toggleSidebar }) => {
             onClick={toggleNotifications}
             className="relative text-gray-600 hover:text-primary-600 transition-colors p-1.5"
           >
-            <Bell size={20} />
+          <Bell size={20} />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                 {unreadCount}
-              </span>
+          </span>
             )}
-          </button>
+        </button>
 
           {isNotificationOpen && (
             <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg py-1 z-50 max-h-96 overflow-y-auto">

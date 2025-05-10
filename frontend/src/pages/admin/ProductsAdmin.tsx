@@ -1,19 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Edit2, Trash2, X, Plus, Package, Tag, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { useAuth } from '../../contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+
+interface ApiError {
+  message: string;
+  status: string;
+}
 
 interface Product {
   _id: string;
   name: string;
-  brand: string;
-  category: string;
   description: string;
+  price: number;
+  totalStock: number;
+  category: string;
+  brand: string;
   mainImage: string;
   subImages: string[];
+  status: 'active' | 'inactive';
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Summary {
+  totalProducts: number;
   totalStock: number;
-  price: number;
+  totalValue: number;
+  lowStockProducts: number;
 }
 
 interface ValidationError {
@@ -51,17 +68,16 @@ const ProductsAdmin: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
-  const [summary, setSummary] = useState({
+  const [summary, setSummary] = useState<Summary>({
     totalProducts: 0,
     totalStock: 0,
     totalValue: 0,
     lowStockProducts: 0
   });
-  const [alertStatus, setAlertStatus] = useState<{ type: 'success' | 'error' | 'info' | null; message: string }>({
+  const [alertStatus, setAlertStatus] = useState<{ type: 'success' | 'error' | 'info' | 'warning' | null; message: string }>({
     type: null,
     message: ''
   });
-  const [previousOutOfStockProducts, setPreviousOutOfStockProducts] = useState<Set<string>>(new Set());
 
   // Get auth token
   const getAuthToken = () => {
@@ -84,39 +100,48 @@ const ProductsAdmin: React.FC = () => {
   const updateStockFromFirstBatch = async (productId: string, quantity: number) => {
     try {
       const token = getAuthToken();
-      await axios.patch(`http://localhost:5000/api/v1/products/${productId}/batch-stock`, {
-        quantity: -quantity // Negative quantity to reduce stock
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`
+      const response = await axios.patch(
+        `${API_BASE_URL}/products/${productId}/batch-stock`,
+        {
+          quantity: -quantity // Negative quantity to reduce stock
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         }
-      });
+      );
+
+      if (response.data.status === 'success') {
+        // Update the local products state with the new stock
+        setProducts(prevProducts => 
+          prevProducts.map(product => 
+            product._id === productId 
+              ? { ...product, totalStock: response.data.data.product.totalStock }
+              : product
+          )
+        );
+
+        // Update summary after stock change
+        setSummary(prevSummary => ({
+          ...prevSummary,
+          totalStock: prevSummary.totalStock - quantity,
+          totalValue: prevSummary.totalValue - (quantity * (products.find(p => p._id === productId)?.price || 0)),
+          lowStockProducts: products.filter(p => (p.totalStock || 0) < 10).length
+        }));
+      }
     } catch (error) {
       console.error('Error updating product batch stock:', error);
+      // Don't throw the error, just log it
     }
-  };
-
-  // Add function to check if out of stock products have changed
-  const hasOutOfStockProductsChanged = (currentOutOfStock: Product[]) => {
-    const currentIds = new Set(currentOutOfStock.map((p: Product) => p._id));
-    const previousIds = previousOutOfStockProducts;
-
-    // Check if sets are different
-    if (currentIds.size !== previousIds.size) return true;
-    
-    // Check if any products are different
-    for (const id of currentIds) {
-      if (!previousIds.has(id)) return true;
-    }
-    
-    return false;
   };
 
   // Modify checkShippedOrdersAndUpdateStock to use batch stock update
   const checkShippedOrdersAndUpdateStock = async () => {
     try {
       const token = getAuthToken();
-      const response = await axios.get('http://localhost:5000/api/v1/orders', {
+      const response = await axios.get(`${API_BASE_URL}/orders`, {
         headers: {
           Authorization: `Bearer ${token}`
         },
@@ -138,35 +163,9 @@ const ProductsAdmin: React.FC = () => {
         }
       }
 
-      // If stock changed, check for out of stock products
+      // If stock changed, refresh the products list
       if (stockChanged) {
-        const outOfStockProducts = products.filter((product: Product) => product.totalStock === 0);
-        
-        // Only send alert if the out of stock products have changed
-        if (outOfStockProducts.length > 0 && hasOutOfStockProductsChanged(outOfStockProducts)) {
-          try {
-            await axios.post('http://localhost:5000/api/v1/products/low-stock-alert', {
-              products: outOfStockProducts
-            }, {
-              headers: {
-                Authorization: `Bearer ${token}`
-              }
-            });
-            // Update the previous out of stock products set
-            setPreviousOutOfStockProducts(new Set(outOfStockProducts.map((p: Product) => p._id)));
-            
-            setAlertStatus({
-              type: 'success',
-              message: `Alert sent for ${outOfStockProducts.length} out of stock products`
-            });
-          } catch (error) {
-            console.error('Error sending out of stock alert:', error);
-            setAlertStatus({
-              type: 'error',
-              message: 'Failed to send out of stock alert'
-            });
-          }
-        }
+        await fetchProducts();
       }
     } catch (error) {
       console.error('Error checking shipped orders:', error);
@@ -175,42 +174,46 @@ const ProductsAdmin: React.FC = () => {
 
   // Modify fetchProducts to include stock updates
   const fetchProducts = async () => {
-    if (!isAuthenticated || !isAdmin) return;
-
     try {
       setLoading(true);
       setError(null);
-      const token = getAuthToken();
-
-      // First check shipped orders and update stock
-      await checkShippedOrdersAndUpdateStock();
-
-      // Then fetch updated products
-      const response = await axios.get('http://localhost:5000/api/v1/products', {
-        headers: {
-          Authorization: `Bearer ${token}`
+      const token = localStorage.getItem('pharmacy_token');
+      
+      const response = await axios.get(`${API_BASE_URL}/products`, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
-      const products = response.data.data.products;
-      setProducts(products);
-
-      // Calculate summary metrics
-      const summaryData = {
-        totalProducts: products.length,
-        totalStock: products.reduce((sum: number, product: Product) => sum + product.totalStock, 0),
-        totalValue: products.reduce((sum: number, product: Product) => sum + (product.totalStock * product.price), 0),
-        lowStockProducts: products.filter((product: Product) => product.totalStock < 10).length
-      };
-      setSummary(summaryData);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      if (axios.isAxiosError(error)) {
-        setError(error.response?.data?.message || 'Error fetching products');
-        if (error.response?.status === 401) {
-          logout();
-          navigate('/signin');
-        }
+      
+      if (response.data.status === 'success' && Array.isArray(response.data.data.products)) {
+        const products = response.data.data.products;
+        setProducts(products);
+        
+        // Calculate summary metrics
+        const summaryData: Summary = {
+          totalProducts: products.length,
+          totalStock: products.reduce((sum: number, product: Product) => sum + (product.totalStock || 0), 0),
+          totalValue: products.reduce((sum: number, product: Product) => sum + ((product.totalStock || 0) * product.price), 0),
+          lowStockProducts: products.filter((product: Product) => (product.totalStock || 0) < 10).length
+        };
+        setSummary(summaryData);
+        
+        // Log total remaining stock for each product
+        products.forEach((product: Product) => {
+          console.log(`Product: ${product.name}`);
+          console.log(`Total Stock: ${product.totalStock || 0}`);
+          console.log(`Remaining Stock: ${product.totalStock || 0}`);
+          console.log('------------------------');
+        });
+      } else {
+        console.error('Invalid response format:', response.data);
+        setError('Invalid response format from server');
       }
+    } catch (err) {
+      const error = err as AxiosError<ApiError>;
+      console.error('Error fetching products:', error);
+      setError(error.response?.data?.message || 'Failed to fetch products. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -278,7 +281,7 @@ const ProductsAdmin: React.FC = () => {
         });
       }
 
-      const response = await axios.post('http://localhost:5000/api/v1/products', formData, {
+      const response = await axios.post(`${API_BASE_URL}/products`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${token}`
@@ -352,7 +355,7 @@ const ProductsAdmin: React.FC = () => {
         formData.append('subImages', image);
       });
 
-      await axios.patch(`http://localhost:5000/api/v1/products/${selectedProduct._id}`, formData, {
+      await axios.patch(`${API_BASE_URL}/products/${selectedProduct._id}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${token}`
@@ -385,7 +388,7 @@ const ProductsAdmin: React.FC = () => {
     try {
       setError(null);
       const token = getAuthToken();
-      await axios.delete(`http://localhost:5000/api/v1/products/${selectedProduct._id}`, {
+      await axios.delete(`${API_BASE_URL}/products/${selectedProduct._id}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -400,51 +403,67 @@ const ProductsAdmin: React.FC = () => {
     }
   };
 
-  // Modify handleSendLowStockAlert to check for out of stock products
+  // Modify handleSendLowStockAlert to send restock requests
   const handleSendLowStockAlert = async () => {
     try {
       setLoading(true);
       setAlertStatus({ type: null, message: '' });
       const token = getAuthToken();
       
-      const outOfStockProducts = products.filter((product: Product) => product.totalStock === 0);
+      // Filter products with low stock (less than 10)
+      const lowStockProducts = products.filter((product: Product) => product.totalStock < 10);
       
-      if (outOfStockProducts.length === 0) {
+      if (lowStockProducts.length === 0) {
         setAlertStatus({
           type: 'error',
-          message: 'No out of stock products found'
+          message: 'No low stock products found'
         });
         return;
       }
 
-      // Only send if the list has changed
-      if (hasOutOfStockProductsChanged(outOfStockProducts)) {
-        await axios.post('http://localhost:5000/api/v1/products/low-stock-alert', {
-          products: outOfStockProducts
-        }, {
+      // Prepare products data with only necessary fields
+      const productsData = lowStockProducts.map(product => ({
+        _id: product._id,
+        name: product.name,
+        totalStock: product.totalStock,
+        brand: product.brand,
+        category: product.category
+      }));
+
+      // Send restock request
+      const response = await axios.post(
+        `${API_BASE_URL}/products/restock-request`,
+        { products: productsData },
+        {
           headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
-        });
+        }
+      );
 
-        // Update the previous out of stock products set
-        setPreviousOutOfStockProducts(new Set(outOfStockProducts.map((p: Product) => p._id)));
-
-        setAlertStatus({
-          type: 'success',
-          message: `Alert sent for ${outOfStockProducts.length} out of stock products`
-        });
+      if (response.data.status === 'success') {
+        // Check if email was sent successfully
+        if (response.data.data.emailSent) {
+          setAlertStatus({
+            type: 'success',
+            message: `Restock request sent for ${lowStockProducts.length} products`
+          });
+        } else {
+          setAlertStatus({
+            type: 'warning',
+            message: `Restock request processed for ${lowStockProducts.length} products, but email could not be sent. Please check email configuration.`
+          });
+          console.error('Email sending failed:', response.data.data.emailError);
+        }
       } else {
-        setAlertStatus({
-          type: 'info',
-          message: 'No changes in out of stock products since last alert'
-        });
+        throw new Error(response.data.message || 'Failed to send restock request');
       }
     } catch (error) {
-      console.error('Error sending out of stock alert:', error);
+      console.error('Error sending restock request:', error);
       setAlertStatus({
         type: 'error',
-        message: 'Failed to send out of stock alert'
+        message: error instanceof Error ? error.message : 'Failed to send restock request'
       });
     } finally {
       setLoading(false);
@@ -528,7 +547,7 @@ const ProductsAdmin: React.FC = () => {
           {alertStatus.message}
         </div>
       )}
-
+      
       {error && (
         <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
           {error}
